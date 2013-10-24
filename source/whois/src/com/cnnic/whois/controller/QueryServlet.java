@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.IDN;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -72,6 +73,8 @@ public class QueryServlet extends HttpServlet {
 		} catch (QueryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}		
 	}
 
@@ -127,6 +130,8 @@ public class QueryServlet extends HttpServlet {
 		} catch (QueryException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -142,9 +147,10 @@ public class QueryServlet extends HttpServlet {
 	 * @throws ServletException
 	 *             if the request could not be handled
 	 * @throws QueryException 
+	 * @throws SQLException 
 	 */
 	private void processRequest(HttpServletRequest request,
-			HttpServletResponse response) throws IOException, ServletException, QueryException {
+			HttpServletResponse response) throws IOException, ServletException, QueryException, SQLException {
 
 		Map<String, Object> map = null;
 		char[] n = request.getRequestURI().toCharArray();
@@ -168,8 +174,8 @@ public class QueryServlet extends HttpServlet {
 			//map = WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE, role, format);
 		}
 		if(this.isFuzzyQueryType(queryType)){
+			queryPara = getFuzzyQueryString(request,queryType);
 			queryType = convertFuzzyQueryType(queryType);
-			queryPara = getFuzzyQueryString(request);
 		}
 		request.setAttribute("queryType", queryType);
 		int typeIndex = Arrays.binarySearch(WhoisUtil.queryTypes, queryType); //according to the type of the parameter type query
@@ -189,7 +195,8 @@ public class QueryServlet extends HttpServlet {
 				map = processQueryDsData(queryPara, role, format);
 				break;
 			case 3:
-				map = processQueryEntity(WhoisUtil.toChineseUrl(queryPara), role, format);
+				String queryParaWithoutPrefix = removeFuzzyPrefixIfHas(queryPara);
+				map = processQueryEntity(WhoisUtil.toChineseUrl(queryParaWithoutPrefix), role, format,request);
 				break;
 			case 4:
 				map = processQueryEvents(queryPara, role, format);
@@ -236,7 +243,9 @@ public class QueryServlet extends HttpServlet {
 				map = WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE, role, format);
 				break;
 			}
-			request.setAttribute("queryPara", queryPara);
+			String queryParaInput = queryPara;
+			queryParaInput = addPrefixBeforeParaIfEntityFuzzy(request, queryPara,typeIndex);;
+			request.setAttribute("queryPara", WhoisUtil.toChineseUrl(queryParaInput));
 		} catch (RedirectExecption re) {
 			String redirectUrl = re.getRedirectURL(); //to capture to exception of rediectionException and redirect
 			
@@ -260,7 +269,35 @@ public class QueryServlet extends HttpServlet {
 			processRespone(request, response, map);
 		}
 	}
+
+	private String addPrefixBeforeParaIfEntityFuzzy(HttpServletRequest request,
+			String queryPara, int typeIndex) {
+		if(typeIndex != 3){//only hadle entity type
+			return queryPara;
+		}
+		if(!isFuzzyQuery(queryPara)){
+			return queryPara;
+		}
+		if(StringUtils.isBlank(queryPara)){
+			return queryPara;
+		}
+		String fuzzyQueryParamName = getEntityFuzzyQueryParamName(request);
+		if(!queryPara.startsWith(fuzzyQueryParamName + ":")){
+			queryPara = fuzzyQueryParamName + ":" + queryPara;
+		}
+		return queryPara;
+	}
 	 
+	private String removeFuzzyPrefixIfHas(String queryPara) {
+		if(StringUtils.isBlank(queryPara)){
+			return queryPara;
+		}
+		if(!isFuzzyQuery(queryPara)){
+			return queryPara;
+		}
+		return queryPara.replaceFirst("fn:", "").replaceFirst("handle:", "");
+	}
+
 	private boolean isFuzzyQueryType(String queryType) {
 		if("domains".equals(queryType)||"nameservers".equals(queryType)
 				||"entities".equals(queryType)){
@@ -282,9 +319,25 @@ public class QueryServlet extends HttpServlet {
 		return null;
 	}
 	
-	private String getFuzzyQueryString(HttpServletRequest request) {
+	private String getFuzzyQueryString(HttpServletRequest request, String queryType) {
 		Map<String, String> paramsMap = parseQueryParameter(request.getQueryString());
-		return paramsMap.get("name");
+		if("entities".equals(queryType)){
+			String fnParamValue = paramsMap.get("fn");
+			if(StringUtils.isBlank(fnParamValue)){
+				fnParamValue = paramsMap.get("handle");
+			}
+			return fnParamValue;
+		}else{
+			return paramsMap.get("name");
+		}
+	}
+	
+	private String getEntityFuzzyQueryParamName(HttpServletRequest request) {
+		Map<String, String> paramsMap = parseQueryParameter(request.getQueryString());
+		if(paramsMap.containsKey("fn")){
+			return "fn";
+		}
+		return "handle";
 	}
 
 	private boolean isJsonOrXmlFormat(HttpServletRequest request) {
@@ -446,7 +499,7 @@ public class QueryServlet extends HttpServlet {
 		if(isFuzzyQuery(queryPara)){
 			return queryService.fuzzyQueryDomain(queryPara,queryParaPuny, role, format);
 		}
-		return queryService.queryDoamin(queryParaPuny, role, format);
+		return queryService.queryDomain(queryParaPuny, role, format);
 	}
 	
 	private boolean isFuzzyQuery(String domainName){
@@ -457,7 +510,7 @@ public class QueryServlet extends HttpServlet {
 	}
 	
 	private boolean validateDomainName(String domainName){
-		if (!isBlankStr(domainName))
+		if (!isCommonInvalidStr(domainName))
 			return false;
 		if(!domainName.startsWith("xn--") && !verifyNameServer(domainName)){
 			return false;
@@ -476,7 +529,7 @@ public class QueryServlet extends HttpServlet {
 	 */
 	private Map<String, Object> processQueryAS(String queryPara, String role, String format)
 			throws QueryException, RedirectExecption {
-		if (!isBlankStr(queryPara))
+		if (!isCommonInvalidStr(queryPara))
 			return WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE, role, format);
 
 		if (!queryPara.matches("^[0-9]*$"))
@@ -497,18 +550,33 @@ public class QueryServlet extends HttpServlet {
 	/**
 	 * Query entity type
 	 * 
-	 * @param queryPara
+	 * @param queryParaValue
 	 * @param role
+	 * @param request 
 	 * @return map collection
 	 * @throws QueryException
+	 * @throws SQLException 
 	 */
-	private Map<String, Object> processQueryEntity(String queryPara, String role, String format)
-			throws QueryException {
-		if (!isBlankStr(queryPara))
+	private Map<String, Object> processQueryEntity(String queryParaValue, String role, String format, HttpServletRequest request)
+			throws QueryException, SQLException {
+		if (!isInvalidEntityStr(queryParaValue))
 			return WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE, role, format);
 
 		QueryService queryService = QueryService.getQueryService();
-		return queryService.queryEntity(queryPara, role, format);
+		if(isFuzzyQuery(queryParaValue)){
+			String fuzzyQueryParamName = getEntityFuzzyQueryParamName(request);
+			String fuzzyQuerySolrPropName = convertEntityFuzzyQueryParamNameToSolrPropName(fuzzyQueryParamName);
+			return queryService.fuzzyQueryEntity(fuzzyQuerySolrPropName,queryParaValue, role, format);
+		}
+		return queryService.queryEntity(queryParaValue, role, format);
+	}
+
+	private String convertEntityFuzzyQueryParamNameToSolrPropName(
+			String fuzzyQueryParamName) {
+		if("fn".equals(fuzzyQueryParamName)){
+			return "entityNames";
+		}
+		return fuzzyQueryParamName;
 	}
 
 	/**
@@ -539,7 +607,7 @@ public class QueryServlet extends HttpServlet {
 	 * @return The correct parity returns true, failure to return false
 	 */
 	private boolean verifyNameServer(String queryPara) {
-		if (!isBlankStr(queryPara))
+		if (!isCommonInvalidStr(queryPara))
 			return false;
 		String fuzzyReg = "^(?!-.)(?!.*?-$)((\\*)?[0-9a-zA-Z][0-9a-zA-Z-]{0,62}(\\*)?\\.)+([0-9a-zA-Z][0-9a-zA-Z-]{0,62}\\*?)?$";
 		if (queryPara.matches(fuzzyReg))
@@ -557,7 +625,7 @@ public class QueryServlet extends HttpServlet {
 	 */
 	private Map<String, Object> processQueryLinks(String queryPara, String role, String format)
 			throws QueryException {
-		if (!isBlankStr(queryPara))
+		if (!isCommonInvalidStr(queryPara))
 			return WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE, role, format);
 
 		QueryService queryService = QueryService.getQueryService();
@@ -574,7 +642,7 @@ public class QueryServlet extends HttpServlet {
 	 */
 	private Map<String, Object> processQueryPhones(String queryPara, String role, String format)
 			throws QueryException {
-		if (!isBlankStr(queryPara))
+		if (!isCommonInvalidStr(queryPara))
 			return WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE, role, format);
 
 		QueryService queryService = QueryService.getQueryService();
@@ -591,7 +659,7 @@ public class QueryServlet extends HttpServlet {
 	 */
 	private Map<String, Object> processQueryPostalAddress(String queryPara,
 			String role, String format) throws QueryException {
-		if (!isBlankStr(queryPara))
+		if (!isCommonInvalidStr(queryPara))
 			return WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE, role, format);
 
 		QueryService queryService = QueryService.getQueryService();
@@ -608,7 +676,7 @@ public class QueryServlet extends HttpServlet {
 	 */
 	private Map<String, Object> processQueryVariants(String queryPara,
 			String role, String format) throws QueryException {
-		if (!isBlankStr(queryPara))
+		if (!isCommonInvalidStr(queryPara))
 			return WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE, role, format);
 
 		QueryService queryService = QueryService.getQueryService();
@@ -625,7 +693,7 @@ public class QueryServlet extends HttpServlet {
 	 */
 	private Map<String, Object> processQuerySecureDNS(String queryPara,
 			String role, String format) throws QueryException {
-		if (!isBlankStr(queryPara))
+		if (!isCommonInvalidStr(queryPara))
 			return WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE, role, format);
 
 		QueryService queryService = QueryService.getQueryService();
@@ -642,7 +710,7 @@ public class QueryServlet extends HttpServlet {
 	 */
 	private Map<String, Object> processQueryDsData(String queryPara,
 			String role, String format) throws QueryException {
-		if (!isBlankStr(queryPara))
+		if (!isCommonInvalidStr(queryPara))
 			return WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE, role, format);
 
 		QueryService queryService = QueryService.getQueryService();
@@ -659,7 +727,7 @@ public class QueryServlet extends HttpServlet {
 	 */
 	private Map<String, Object> processQueryKeyData(String queryPara,
 			String role, String format) throws QueryException {
-		if (!isBlankStr(queryPara))
+		if (!isCommonInvalidStr(queryPara))
 			return WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE, role, format);
 
 		QueryService queryService = QueryService.getQueryService();
@@ -676,7 +744,7 @@ public class QueryServlet extends HttpServlet {
 	 */
 	private Map<String, Object> processQueryNotices(String queryPara,
 			String role, String format) throws QueryException {
-		if (!isBlankStr(queryPara))
+		if (!isCommonInvalidStr(queryPara))
 			return WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE, role, format);
 
 		QueryService queryService = QueryService.getQueryService();
@@ -706,7 +774,7 @@ public class QueryServlet extends HttpServlet {
 	 */
 	private Map<String, Object> processQueryRemarks(String queryPara,
 			String role, String format) throws QueryException {
-		if (!isBlankStr(queryPara))
+		if (!isCommonInvalidStr(queryPara))
 			return WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE, role, format);
 
 		QueryService queryService = QueryService.getQueryService();
@@ -723,26 +791,33 @@ public class QueryServlet extends HttpServlet {
 	 */
 	private Map<String, Object> processQueryEvents(String queryPara,
 			String role, String format) throws QueryException {
-		if (!isBlankStr(queryPara))
+		if (!isCommonInvalidStr(queryPara))
 			return WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE, role, format);
 
 		QueryService queryService = QueryService.getQueryService();
 		return queryService.queryEvents(queryPara, role, format);
 	}
-
 	/**
 	 * Verifying the String parameters
 	 * 
 	 * @param parm
 	 * @return The correct parity returns true, failure to return false
 	 */
-	private boolean isBlankStr(String parm) {
-		String strReg = "^[a-zA-z\\d\\*]{1}([\\w\\-\\.\\_\\*]*)$";
+	private boolean isCommonInvalidStr(String parm) {
+		String strReg = "^[a-zA-Z\\d\\*]{1}([\\w\\-\\.\\_\\*]*)$";
 
 		if (parm.equals("") || parm == null)
 			return false;
 
 		return parm.matches(strReg);
+	}
+	
+	private boolean isInvalidEntityStr(String parm) {
+//		String strReg = "^[@\\w\\-\\.\\_\\* \u4E00-\u9FFF]*$";
+//		if (parm.equals("") || parm == null)
+//			return false;
+//		return parm.matches(strReg);
+		return true;
 	}
 
 	/**

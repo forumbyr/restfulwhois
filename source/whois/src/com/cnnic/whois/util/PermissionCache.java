@@ -11,6 +11,10 @@ import java.util.Map;
 import javax.naming.InitialContext;
 import javax.sql.DataSource;
 
+import com.cnnic.whois.bean.index.DomainIndex;
+import com.cnnic.whois.bean.index.EntityIndex;
+import com.cnnic.whois.bean.index.NameServerIndex;
+
 public class PermissionCache {
 	private static PermissionCache permissionCache = new PermissionCache();
 
@@ -226,6 +230,27 @@ public class PermissionCache {
 	 */
 	public List<String> getNameServerKeyFileds(String role) {
 		return NameServerMap.get(role);
+	}
+	
+	public List<String> getKeyFiledsByClass(Object o,String role) {
+		if(o instanceof DomainIndex){
+			if(((DomainIndex) o).isDnrDomain()){
+				return getDNRDomainKeyFileds(role);
+			}else{
+				return getRIRDomainKeyFileds(role);
+			}
+		}
+		if(o instanceof NameServerIndex){
+			return getNameServerKeyFileds(role);
+		}
+		if(o instanceof EntityIndex){
+			if(((EntityIndex) o).isDnrEntity()){
+				return this.getDNREntityKeyFileds(role);
+			}else{
+				return this.getRIREntityKeyFileds(role);
+			}
+		}
+		return new ArrayList<String>();
 	}
 
 	/**

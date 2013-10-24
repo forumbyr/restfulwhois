@@ -20,9 +20,7 @@ public class DomainIndexService {
 	private static DomainIndexService indexService = new DomainIndexService(
 			WhoisProperties.getDomainSolrUrl());
 	private CommonsHttpSolrServer server;
-	private static String DNRDOMAIN_TYPE = "dnrDomain";
-	private static String RIRDOMAIN_TYPE = "rirDomain";
-
+	
 	public static DomainIndexService getIndexService() {
 		return indexService;
 	}

@@ -10,6 +10,8 @@ import org.apache.solr.client.solrj.beans.Field;
 import com.cnnic.whois.bean.Domain;
 
 public class DomainIndex implements Index{
+	private static String DNRDOMAIN_TYPE = "dnrDomain";
+	private static String RIRDOMAIN_TYPE = "rirDomain";
 
 	@Field("id")
 	private String id;
@@ -31,6 +33,10 @@ public class DomainIndex implements Index{
 
 	private Domain domain;
 
+	public boolean isDnrDomain(){
+		return DNRDOMAIN_TYPE.equals(docType);
+	}
+	
 	public String getPropValue(String key){
 		return propValueMap.get(key);
 	}

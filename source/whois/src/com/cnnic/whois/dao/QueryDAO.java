@@ -13,12 +13,14 @@ import javax.naming.InitialContext;
 import javax.sql.DataSource;
 
 import com.cnnic.whois.bean.index.DomainIndex;
+import com.cnnic.whois.bean.index.EntityIndex;
 import com.cnnic.whois.bean.index.Index;
 import com.cnnic.whois.bean.index.NameServerIndex;
 import com.cnnic.whois.bean.index.SearchCondition;
 import com.cnnic.whois.execption.QueryException;
 import com.cnnic.whois.execption.RedirectExecption;
 import com.cnnic.whois.service.DomainIndexService;
+import com.cnnic.whois.service.EntityIndexService;
 import com.cnnic.whois.service.NameServerIndexService;
 import com.cnnic.whois.service.QueryService;
 import com.cnnic.whois.service.index.SearchResult;
@@ -32,6 +34,7 @@ public class QueryDAO {
 			.getPermissionCache();
 	private DomainIndexService domainIndexService = DomainIndexService.getIndexService();
 	private NameServerIndexService nameServerIndexService = NameServerIndexService.getIndexService();
+	private EntityIndexService entityIndexService = EntityIndexService.getIndexService();
 	/**
 	 * Connect to the datasource in the constructor
 	 * 
@@ -125,6 +128,54 @@ public class QueryDAO {
 		return map;
 	}
 	
+	public Map<String, Object> queryEntity(String queryPara, String role, String format)
+			throws QueryException, SQLException {
+		SearchResult<EntityIndex> result = entityIndexService.preciseQueryEntitiesByHandleOrName(queryPara);
+		String selectSql = WhoisUtil.SELECT_LIST_RIRENTITY;
+		Connection connection = null;
+		Map<String, Object> map = null;
+		try {
+			connection = ds.getConnection();
+			map = queryDAO.fuzzyQuery(connection, result,selectSql,"$mul$entity", role, format);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new QueryException(e);
+		} finally {
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (SQLException se) {
+				}
+			}
+		}
+		return map;
+	}
+	
+	public Map<String, Object> fuzzyQueryEntity(String fuzzyQueryParamName,String queryPara,
+			String role, String format)
+			throws QueryException, SQLException {
+		SearchResult<EntityIndex> result = entityIndexService
+				.fuzzyQueryEntitiesByHandleAndName(fuzzyQueryParamName,queryPara);
+		String selectSql = WhoisUtil.SELECT_LIST_RIRENTITY;
+		Connection connection = null;
+		Map<String, Object> map = null;
+		try {
+			connection = ds.getConnection();
+			map = queryDAO.fuzzyQuery(connection, result,selectSql,"$mul$entity", role, format);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			throw new QueryException(e);
+		} finally {
+			if (connection != null) {
+				try {
+					connection.close();
+				} catch (SQLException se) {
+				}
+			}
+		}
+		return map;
+	}
+	
 	public Map<String, Object> fuzzyQueryNameServer(String queryInfo, String role, String format)
 			throws QueryException {
 		Connection connection = null;
@@ -137,7 +188,6 @@ public class QueryDAO {
 			String selectSql = WhoisUtil.SELECT_LIST_NAMESREVER + "'"
 					+ queryInfo + "'";
 			Map<String, Object> nsMap = fuzzyQuery(connection, result,selectSql,
-					permissionCache.getNameServerKeyFileds(role),
 					"$mul$nameServer", role, format);
 			if(nsMap != null){
 				map = rdapConformance(map);
@@ -175,8 +225,7 @@ public class QueryDAO {
 			if("rirDomain".equals(domainIndex.getDocType())){
 				sql = WhoisUtil.SELECT_LIST_RIRDOMAIN;
 			}
-			Map<String, Object> domainMap = this.fuzzyQuery(connection, result,sql,
-					permissionCache.getDNRDomainKeyFileds(role), "$mul$domains",
+			Map<String, Object> domainMap = this.fuzzyQuery(connection, result,sql,"$mul$domains",
 					role, format);
 			if(domainMap != null){
 				map =  rdapConformance(map);
@@ -205,38 +254,36 @@ public class QueryDAO {
 	}
 	
 	private Map<String, Object> fuzzyQuery(Connection connection, SearchResult<? extends Index> domains,
-			String selectSql,List<String> keyFlieds, String keyName, String role, String format)
+			String selectSql,String keyName, String role, String format)
 			throws SQLException {
 			List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
-			for(Index domain:domains.getResultList()){
-				domain.initPropValueMap();
+			for(Index index:domains.getResultList()){
+				index.initPropValueMap();
+				List<String> keyFlieds = permissionCache.getKeyFiledsByClass(index, role);
 				Map<String, Object> map = new LinkedHashMap<String, Object>();
 				for (int i = 0; i < keyFlieds.size(); i++) {
 					Object resultsInfo = null;
 					if (keyFlieds.get(i).startsWith(WhoisUtil.ARRAYFILEDPRX)) {
 						String key = keyFlieds.get(i).substring(WhoisUtil.ARRAYFILEDPRX.length());
-						resultsInfo = domain.getPropValue(key);
+						resultsInfo = index.getPropValue(key);
 						String[] values = null;
 						if (resultsInfo != null) {
 							values = resultsInfo.toString().split(WhoisUtil.VALUEARRAYPRX);
 						}
 						map.put(WhoisUtil.getDisplayKeyName(key, format), values);
 					} else if (keyFlieds.get(i).startsWith(WhoisUtil.EXTENDPRX)) {
-						resultsInfo = domain.getPropValue(keyFlieds.get(i));
+						resultsInfo = index.getPropValue(keyFlieds.get(i));
 						map.put(keyFlieds.get(i).substring(WhoisUtil.EXTENDPRX.length()), resultsInfo);
 					} else if (keyFlieds.get(i).startsWith(WhoisUtil.JOINFILEDPRX)) {
 						String key = keyFlieds.get(i).substring(WhoisUtil.JOINFILEDPRX.length());
-						String sql = WhoisUtil.SELECT_LIST_DNRDOMAIN;
-						if("rirDomain".equals(domain.getDocType())){
-							sql = WhoisUtil.SELECT_LIST_RIRDOMAIN;
-						}
 						Object value = queryJoinTable(keyFlieds.get(i),
-								domain.getHandle(), sql, role,
+								index.getHandle(), selectSql, role,
 								connection, format);
 						if (value != null)
 							map.put(key, value);
 					} else {
-						resultsInfo = domain.getPropValue(keyFlieds.get(i));
+						resultsInfo = index.getPropValue(keyFlieds.get(i));
+						resultsInfo = resultsInfo==null?"":resultsInfo;
 						CharSequence id = "id";
 						if(!keyName.equals(WhoisUtil.JOINPUBLICIDS) && WhoisUtil.getDisplayKeyName(keyFlieds.get(i), format).substring(keyFlieds.get(i).length() - 2).equals(id) && !format.equals("application/html")){
 							continue;
