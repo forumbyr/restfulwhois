@@ -8,9 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.naming.InitialContext;
-import javax.sql.DataSource;
-
 import com.cnnic.whois.bean.index.DomainIndex;
 import com.cnnic.whois.bean.index.EntityIndex;
 import com.cnnic.whois.bean.index.NameServerIndex;
@@ -483,11 +480,10 @@ public class PermissionCache {
 		List<String> anonymousDataList = new ArrayList<String>();
 		List<String> authenticatedDataList = new ArrayList<String>();
 		List<String> rootDataList = new ArrayList<String>();
-		
+
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		try {
-			InitialContext ctx = new InitialContext();
-			DataSource ds = (DataSource) ctx.lookup(WhoisUtil.JNDI_NAME);
-			Connection connection = ds.getConnection();
 			PreparedStatement stmt = connection
 					.prepareStatement(WhoisUtil.SELECT_PERMISSION);
 			stmt.setString(1, tableName);
@@ -537,7 +533,7 @@ public class PermissionCache {
 			keyMap.put("anonymous", anonymousList);
 			keyMap.put("authenticated", authenticatedList);
 			keyMap.put("root", rootList);
-			
+			JdbcUtils.free(null, null, connection);
 			return keyMap;
 		} catch (Exception e) {
 			e.printStackTrace();

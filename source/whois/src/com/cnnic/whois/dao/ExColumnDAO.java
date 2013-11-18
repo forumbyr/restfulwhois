@@ -8,30 +8,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import javax.naming.InitialContext;
-import javax.sql.DataSource;
-
 import com.cnnic.whois.execption.ManagementException;
+import com.cnnic.whois.util.JdbcUtils;
 import com.cnnic.whois.util.WhoisUtil;
 
 public class ExColumnDAO {
 	private static ExColumnDAO columnDAO = new ExColumnDAO();
-	private DataSource ds;
-
-	/**
-	 * Connect to the datasource in the constructor
-	 * 
-	 * @throws IllegalStateException
-	 */
-	private ExColumnDAO() throws IllegalStateException {
-		try {
-			InitialContext ctx = new InitialContext();
-			ds = (DataSource) ctx.lookup(WhoisUtil.JNDI_NAME);
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new IllegalStateException(e.getMessage());
-		}
-	}
 
 	/**
 	 * Get ExColumnDAO objects
@@ -51,11 +33,11 @@ public class ExColumnDAO {
 	 */
 	public void addCoulumn(String tableName, Map<String, String> columnMap)
 			throws ManagementException {
-		Connection connection = null;
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		PreparedStatement stmt = null;
 
 		try {
-			connection = ds.getConnection();
 			String sql = "";
 			Set<String> keys = columnMap.keySet();
 
@@ -97,12 +79,7 @@ public class ExColumnDAO {
 			e.printStackTrace();
 			throw new ManagementException(e);
 		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException se) {
-				}
-			}
+			JdbcUtils.free(null, null, connection);
 		}
 	}
 
@@ -115,12 +92,12 @@ public class ExColumnDAO {
 	 */
 	public Map<String, String> listCoulumn(String tableName)
 			throws ManagementException {
-		Connection connection = null;
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		PreparedStatement stmt = null;
 		Map<String, String> columnInfoList = new HashMap<String, String>();
 
 		try {
-			connection = ds.getConnection();
 			stmt = connection.prepareStatement(WhoisUtil.LIST_COLUMNINFO);
 			stmt.setString(1, tableName);
 			ResultSet results = stmt.executeQuery();
@@ -135,12 +112,7 @@ public class ExColumnDAO {
 			e.printStackTrace();
 			throw new ManagementException(e);
 		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException se) {
-				}
-			}
+			JdbcUtils.free(null, null, connection);
 		}
 	}
 
@@ -156,12 +128,11 @@ public class ExColumnDAO {
 	public void updateCoulumn(String tableName, String oldColumnName,
 			String newCloumnName, String columnLength)
 			throws ManagementException {
-		Connection connection = null;
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		PreparedStatement stmt = null;
 
 		try {
-			connection = ds.getConnection();
-
 			String isNullsql = WhoisUtil.SELECT_PERMISSION_ISNULL;
 			stmt = connection.prepareStatement(isNullsql);
 			stmt.setString(1, tableName);
@@ -203,12 +174,7 @@ public class ExColumnDAO {
 			e.printStackTrace();
 			throw new ManagementException(e);
 		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException se) {
-				}
-			}
+			JdbcUtils.free(null, null, connection);
 		}
 	}
 
@@ -221,13 +187,12 @@ public class ExColumnDAO {
 	 */
 	public void deleteCoulumn(String tableName, String columnName)
 			throws ManagementException {
-		Connection connection = null;
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		PreparedStatement stmt = null;
 		columnName = WhoisUtil.EXTENDPRX + columnName;
 
 		try {
-			connection = ds.getConnection();
-
 			String sql = WhoisUtil.DELETE_COLUMNINFO1 + tableName
 					+ WhoisUtil.DELETE_COLUMNINFO2 + columnName;
 			stmt = connection.prepareStatement(sql);
@@ -241,12 +206,7 @@ public class ExColumnDAO {
 			e.printStackTrace();
 			throw new ManagementException(e);
 		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException se) {
-				}
-			}
+			JdbcUtils.free(null, null, connection);
 		}
 	}
 

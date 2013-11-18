@@ -9,30 +9,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.naming.InitialContext;
-import javax.sql.DataSource;
-
+import com.cnnic.whois.dao.base.BaseDao;
 import com.cnnic.whois.execption.ManagementException;
+import com.cnnic.whois.util.JdbcUtils;
 import com.cnnic.whois.util.WhoisUtil;
 
-public class AccessControlDAO {
+public class AccessControlDAO extends BaseDao {
 	private static AccessControlDAO accessControlDAO = new AccessControlDAO();
-	private DataSource ds;
-
-	/**
-	 * Connect to the datasource in the constructor
-	 * 
-	 * @throws IllegalStateException
-	 */
-	private AccessControlDAO() throws IllegalStateException {
-		try {
-			InitialContext ctx = new InitialContext();
-			ds = (DataSource) ctx.lookup(WhoisUtil.JNDI_NAME);
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new IllegalStateException(e.getMessage());
-		}
-	}
 
 	/**
 	 * Get ExColumnDAO objects
@@ -52,24 +35,19 @@ public class AccessControlDAO {
 	 */
 	public Map<String, Object> listPermissionCoulumn(String tableName)
 			throws ManagementException {
-		Connection connection = null;
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		PreparedStatement stmt = null;
 		Map<String, Object> permissionList = new HashMap<String, Object>();
-
 		try {
-			connection = ds.getConnection();
-			stmt = connection
-					.prepareStatement(WhoisUtil.SELECT_COLUMNINFOERMISSION);
+			stmt = connection.prepareStatement(WhoisUtil.SELECT_COLUMNINFOERMISSION);
 			stmt.setString(1, tableName);
 			ResultSet results = stmt.executeQuery();
-
 			while (results.next()) {
 				String columnName = results.getString(WhoisUtil.COLUMNNAME);
 				Map<String, String> userList = new HashMap<String, String>();
-				userList.put(WhoisUtil.ANONYMOUS,
-						results.getString(WhoisUtil.ANONYMOUS));
-				userList.put(WhoisUtil.AUTHENTICATED,
-						results.getString(WhoisUtil.AUTHENTICATED));
+				userList.put(WhoisUtil.ANONYMOUS, results.getString(WhoisUtil.ANONYMOUS));
+				userList.put(WhoisUtil.AUTHENTICATED, results.getString(WhoisUtil.AUTHENTICATED));
 				userList.put(WhoisUtil.ROOT, results.getString(WhoisUtil.ROOT));
 				permissionList.put(columnName, userList);
 			}
@@ -78,12 +56,7 @@ public class AccessControlDAO {
 			e.printStackTrace();
 			throw new ManagementException(e);
 		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException se) {
-				}
-			}
+			JdbcUtils.free(null, null, connection);
 		}
 	}
 
@@ -98,11 +71,11 @@ public class AccessControlDAO {
 			Map<String, List<String>> permissionList)
 			throws ManagementException {
 		Set<String> columnkeySet = permissionList.keySet();
-		Connection connection = null;
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		PreparedStatement stmt = null;
 
 		try {
-			connection = ds.getConnection();
 			stmt = connection.prepareStatement(WhoisUtil.UPDATE_PERMISSION);
 			for (String key : columnkeySet) {
 				List<String> permissionValueList = (List<String>) permissionList
@@ -118,12 +91,7 @@ public class AccessControlDAO {
 			e.printStackTrace();
 			throw new ManagementException(e);
 		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException se) {
-				}
-			}
+			JdbcUtils.free(null, null, connection);
 		}
 	}
 }

@@ -4,12 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import javax.naming.InitialContext;
-import javax.sql.DataSource;
 
 public class ColumnCache {
 	private static ColumnCache columnCache = new ColumnCache();
@@ -433,10 +428,10 @@ public class ColumnCache {
 	 */
 	private List<String> getKeyList(String tableName) {
 		List<String> coulumNameList = new ArrayList<String>();
+
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		try {
-			InitialContext ctx = new InitialContext();
-			DataSource ds = (DataSource) ctx.lookup(WhoisUtil.JNDI_NAME);
-			Connection connection = ds.getConnection();
 			PreparedStatement stmt = connection
 					.prepareStatement(WhoisUtil.SELECT_LIST_COLUMNNAME);
 			stmt.setString(1, tableName);
@@ -446,6 +441,7 @@ public class ColumnCache {
 			while (results.next()) {
 				coulumNameList.add(results.getString("columnName"));
 			}
+			JdbcUtils.free(null, null, connection);
 			return coulumNameList;
 		} catch (Exception e) {
 			e.printStackTrace();

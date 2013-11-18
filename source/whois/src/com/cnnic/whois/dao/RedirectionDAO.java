@@ -9,30 +9,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.naming.InitialContext;
-import javax.sql.DataSource;
-
 import com.cnnic.whois.execption.ManagementException;
+import com.cnnic.whois.util.JdbcUtils;
 import com.cnnic.whois.util.WhoisUtil;
 
 public class RedirectionDAO {
 	private static RedirectionDAO redirectDAO = new RedirectionDAO();
-	private DataSource ds;
-
-	/**
-	 * Connect to the datasource in the constructor
-	 * 
-	 * @throws IllegalStateException
-	 */
-	private RedirectionDAO() throws IllegalStateException {
-		try {
-			InitialContext ctx = new InitialContext();
-			ds = (DataSource) ctx.lookup(WhoisUtil.JNDI_NAME);
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new IllegalStateException(e.getMessage());
-		}
-	}
 
 	/**
 	 * Get RedirectionDAO objects
@@ -52,12 +34,11 @@ public class RedirectionDAO {
 	 */
 	public void addDomainRedirection(String domainName, String redirectUrl)
 			throws ManagementException {
-		Connection connection = null;
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		PreparedStatement stmt = null;
 		ResultSet resultsIsNull = null;
 		try {
-			connection = ds.getConnection();
-
 			String sql = WhoisUtil.ISNULL_DOMAIN_REDIRECT;
 			stmt = connection.prepareStatement(sql);
 			stmt.setString(1, domainName);
@@ -69,19 +50,14 @@ public class RedirectionDAO {
 
 			sql = WhoisUtil.INSERT_DOMAIN_REDIRECTION + "'" + domainName + "'"
 					+ "," + "'" + redirectUrl + "')";
-			connection = ds.getConnection();
+			
 			stmt = connection.prepareStatement(sql);
 			stmt.execute();
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw new ManagementException(e);
 		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException se) {
-				}
-			}
+			JdbcUtils.free(null, null, connection);
 		}
 	}
 
@@ -98,11 +74,11 @@ public class RedirectionDAO {
 	public void addIPRedirection(long startHighAddr, long endHighAddr,
 			long startLowAddr, long endLowAddr, String redirectUrl)
 			throws ManagementException {
-		Connection connection = null;
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		PreparedStatement stmt = null;
 		ResultSet resultsIsNull = null;
 		try {
-			connection = ds.getConnection();
 			String sql = WhoisUtil.ISNULL_IP_REDIRECT;
 			stmt = connection.prepareStatement(sql);
 			stmt.setLong(1, startHighAddr);
@@ -118,19 +94,14 @@ public class RedirectionDAO {
 			sql = WhoisUtil.INSERT_IP_REDIRECTION + startHighAddr + ","
 					+ endHighAddr + "," + startLowAddr + "," + endLowAddr
 					+ ",'" + redirectUrl + "')";
-			connection = ds.getConnection();
+
 			stmt = connection.prepareStatement(sql);
 			stmt.execute();
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw new ManagementException(e);
 		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException se) {
-				}
-			}
+			JdbcUtils.free(null, null, connection);
 		}
 	}
 
@@ -144,11 +115,11 @@ public class RedirectionDAO {
 	 */
 	public void addAutnumRedirection(String startNumber, String endNumber,
 			String redirectUrl) throws ManagementException {
-		Connection connection = null;
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		PreparedStatement stmt = null;
 		ResultSet resultsIsNull = null;
 		try {
-			connection = ds.getConnection();
 			String sql = WhoisUtil.ISNULL_AUTNUM_REDIRECT;
 			stmt = connection.prepareStatement(sql);
 			stmt.setInt(1, Integer.parseInt(startNumber));
@@ -164,8 +135,7 @@ public class RedirectionDAO {
 					+ Integer.parseInt(startNumber) + ","
 					+ Integer.parseInt(endNumber) + "," + "'" + redirectUrl
 					+ "')";
-
-			connection = ds.getConnection();
+			
 			stmt = connection.prepareStatement(sql);
 			stmt.execute();
 
@@ -173,12 +143,7 @@ public class RedirectionDAO {
 			e.printStackTrace();
 			throw new ManagementException(e);
 		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException se) {
-				}
-			}
+			JdbcUtils.free(null, null, connection);
 		}
 	}
 
@@ -191,12 +156,12 @@ public class RedirectionDAO {
 	 */
 	public Map<Integer, List<String>> listRedirect(String tableName)
 			throws ManagementException {
-		Connection connection = null;
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		PreparedStatement stmt = null;
 		Map<Integer, List<String>> redirectInfoList = new HashMap<Integer, List<String>>();
 
 		try {
-			connection = ds.getConnection();
 			String sql = WhoisUtil.SELECT_REDIRECT + tableName + "_redirect";
 
 			stmt = connection.prepareStatement(sql);
@@ -242,12 +207,7 @@ public class RedirectionDAO {
 			e.printStackTrace();
 			throw new ManagementException(e);
 		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException se) {
-				}
-			}
+			JdbcUtils.free(null, null, connection);
 		}
 	}
 
@@ -261,12 +221,11 @@ public class RedirectionDAO {
 	 */
 	public void updateDomainRedirection(String domainName, int id,
 			String redirectUrl) throws ManagementException {
-		Connection connection = null;
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		PreparedStatement stmt = null;
 		ResultSet resultsIsNull = null;
 		try {
-			connection = ds.getConnection();
-
 			String sql = WhoisUtil.ISNULL_DOMAIN_REDIRECT;
 			stmt = connection.prepareStatement(sql);
 			stmt.setString(1, domainName);
@@ -279,19 +238,14 @@ public class RedirectionDAO {
 			sql = WhoisUtil.UPDATE_DOMAIN_REDIRECTION  + "'" + domainName + "'"
 					+ WhoisUtil.UPDATE_REDIRECTION1 + "'" + redirectUrl + "'"
 					+ WhoisUtil.UPDATE_REDIRECTION2 + id;
-			connection = ds.getConnection();
+
 			stmt = connection.prepareStatement(sql);
 			stmt.execute();
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw new ManagementException(e);
 		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException se) {
-				}
-			}
+			JdbcUtils.free(null, null, connection);
 		}
 	}
 
@@ -306,11 +260,11 @@ public class RedirectionDAO {
 	 */
 	public void updateAutnumRedirection(String startNumber, String endNumber,
 			int id, String redirectUrl) throws ManagementException {
-		Connection connection = null;
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		PreparedStatement stmt = null;
 		ResultSet resultsIsNull = null;
 		try {
-			connection = ds.getConnection();
 			String sql = WhoisUtil.ISNULL_AUTNUM_REDIRECT;
 			stmt = connection.prepareStatement(sql);
 			stmt.setInt(1, Integer.parseInt(startNumber));
@@ -328,19 +282,13 @@ public class RedirectionDAO {
 					+ WhoisUtil.UPDATE_REDIRECTION1 + "'" + redirectUrl + "'"
 					+ WhoisUtil.UPDATE_REDIRECTION2 + id;
 
-			connection = ds.getConnection();
 			stmt = connection.prepareStatement(sql);
 			stmt.execute();
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw new ManagementException(e);
 		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException se) {
-				}
-			}
+			JdbcUtils.free(null, null, connection);
 		}
 	}
 
@@ -358,11 +306,11 @@ public class RedirectionDAO {
 	public void updateIPRedirection(long startHighAddr, long endHighAddr,
 			long startLowAddr, long endLowAddr, int id, String redirectUrl)
 			throws ManagementException {
-		Connection connection = null;
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		PreparedStatement stmt = null;
 		ResultSet resultsIsNull = null;
 		try {
-			connection = ds.getConnection();
 			String sql = WhoisUtil.ISNULL_IP_REDIRECT;
 			stmt = connection.prepareStatement(sql);
 			stmt.setLong(1, startHighAddr);
@@ -381,19 +329,14 @@ public class RedirectionDAO {
 					+ WhoisUtil.UPDATE_IP_REDIRECTION4 + endLowAddr
 					+ WhoisUtil.UPDATE_REDIRECTION1 + "'" + redirectUrl + "'"
 					+ WhoisUtil.UPDATE_REDIRECTION2 + id;
-			connection = ds.getConnection();
+
 			stmt = connection.prepareStatement(sql);
 			stmt.execute();
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw new ManagementException(e);
 		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException se) {
-				}
-			}
+			JdbcUtils.free(null, null, connection);
 		}
 	}
 
@@ -406,11 +349,11 @@ public class RedirectionDAO {
 	 */
 	public void deleteRedirect(int id, String tableName)
 			throws ManagementException {
-		Connection connection = null;
+//		TODO : 取得数据库连接
+		Connection connection = JdbcUtils.getConnection();
 		PreparedStatement stmt = null;
 
 		try {
-			connection = ds.getConnection();
 			String sql = WhoisUtil.DELETE_REDIRECT1 + tableName + "_redirect"
 					+ WhoisUtil.DELETE_REDIRECT2;
 
@@ -421,12 +364,7 @@ public class RedirectionDAO {
 			e.printStackTrace();
 			throw new ManagementException(e);
 		} finally {
-			if (connection != null) {
-				try {
-					connection.close();
-				} catch (SQLException se) {
-				}
-			}
+			JdbcUtils.free(null, null, connection);
 		}
 	}
 
