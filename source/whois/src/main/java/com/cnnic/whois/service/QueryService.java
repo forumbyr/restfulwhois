@@ -68,7 +68,7 @@ public class QueryService {
 			return WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE,queryParam);
 		}
 		Long longValue = Long.valueOf(autnum);
-		if (longValue <= MIN_AS_NUM || longValue >= MAX_AS_NUM) {
+		if (longValue < MIN_AS_NUM || longValue > MAX_AS_NUM) {
 			return WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE,queryParam);
 		}
 		resultMap = queryEngine.query(QueryType.AUTNUM, queryParam);
