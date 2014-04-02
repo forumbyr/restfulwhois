@@ -16,12 +16,20 @@ import com.cnnic.whois.bean.QueryType;
 import com.cnnic.whois.dao.query.db.DbQueryExecutor;
 import com.cnnic.whois.util.AuthenticationHolder;
 import com.cnnic.whois.util.WhoisUtil;
-
+/**
+ * permission controller,filter authorized column
+ * @author nic
+ *
+ */
 @Component
 public class PermissionController {
 	@Autowired
 	private DbQueryExecutor dbQueryExecutor;
-
+	/**
+	 * remove unAuthed entries
+	 * @param map
+	 * @return
+	 */
 	public Map<String, Object> removeUnAuthedEntries(Map<String, Object> map) {
 		String role = AuthenticationHolder.getAuthentication().getRole();
 		if (null == map) {
@@ -34,7 +42,12 @@ public class PermissionController {
 		}
 		return removeUnAuthedEntriesMap(map, role);
 	}
-
+	/**
+	 * remove unAuthed entries from map
+	 * @param map :query result
+	 * @param role :user role
+	 * @return :filtered map
+	 */
 	private Map<String, Object> removeUnAuthedEntriesMap(
 			Map<String, Object> map, String role) {
 		if (null == map) {
@@ -59,7 +72,11 @@ public class PermissionController {
 		}
 		return resultMap;
 	}
-
+	/**
+	 * get multi objects from query result map
+	 * @param map:query result map
+	 * @return:multi objects
+	 */
 	private Object[] getMultiObjs(Map<String, Object> map) {
 		for (Iterator<Entry<String, Object>> it = map.entrySet().iterator(); it
 				.hasNext();) {
@@ -70,7 +87,11 @@ public class PermissionController {
 		}
 		return null;
 	}
-
+	/**
+	 * remove field prefix:$mul,$join
+	 * @param fields
+	 * @return field after removed prefix
+	 */
 	private List<String> removeFieldPrefix(List<String> fields) {
 		List<String> result = new ArrayList<String>();
 		for (String field : fields) {
@@ -87,7 +108,11 @@ public class PermissionController {
 		}
 		return result;
 	}
-
+	/**
+	 * get query type from map
+	 * @param map:query result
+	 * @return query type
+	 */
 	private QueryType getQueryType(Map<String, Object> map) {
 		Object queryTypeObj = map.get(WhoisUtil.QUERY_TYPE);
 		if (null != queryTypeObj) {
@@ -95,7 +120,11 @@ public class PermissionController {
 		}
 		return null;
 	}
-
+	/**
+	 * remove unAuthed entries
+	 * @param object:query result
+	 * @param role :user role
+	 */
 	private void removeUnAuthedEntriesObject(Object object, String role) {
 		if (null == object) {
 			return;
@@ -111,13 +140,21 @@ public class PermissionController {
 			map.putAll(result);
 		}
 	}
-
+	/**
+	 * remove unAuthed entries from jsonArray
+	 * @param object :query result
+	 * @param role :user role
+	 */
 	private void removeUnAuthedEntriesJsonArray(JSONArray object, String role) {
 		for (int i = 0; i < object.size(); i++) {
 			removeUnAuthedEntriesObject(object.get(i), role);
 		}
 	}
-
+	/**
+	 * remove unAuthed entries from array
+	 * @param array:query result array
+	 * @param role:user role
+	 */
 	private void removeUnAuthedEntriesArray(Object[] array, String role) {
 		for (Object object : array) {
 			removeUnAuthedEntriesObject(object, role);

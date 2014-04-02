@@ -1,5 +1,9 @@
 package com.cnnic.whois.execption;
-
+/**
+ * redirect exception
+ * @author nic
+ *
+ */
 public class RedirectExecption extends Exception {
 	private String redirectURL;
 

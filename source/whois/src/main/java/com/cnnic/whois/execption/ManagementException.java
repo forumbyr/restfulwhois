@@ -1,5 +1,9 @@
 package com.cnnic.whois.execption;
-
+/**
+ * management exception
+ * @author nic
+ *
+ */
 public class ManagementException extends Exception {
 	/**
 	 * constructed a object
