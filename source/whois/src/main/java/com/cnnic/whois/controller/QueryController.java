@@ -255,7 +255,7 @@ public class QueryController extends BaseController {
 			throws QueryException, SQLException, IOException, ServletException,
 			RedirectExecption {
 		Map<String, Object> resultMap = null;
-		QueryParam queryParam = super.praseQueryParams(request);
+		DomainQueryParam queryParam = super.praseDomainQueryParams(request);
 		request.setAttribute("queryType", "nameserver");
 		if (StringUtils.isBlank(name) && StringUtils.isBlank(ip)) {
 			super.renderResponseError400(request, response,queryParam);
@@ -283,7 +283,7 @@ public class QueryController extends BaseController {
 			if (!ValidateUtils.verifyFuzzyDomain(name) || ValidateUtils.isInvalidPunyPartSearch(name) ) {
 				resultMap = WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE,queryParam);
 			} else {
-				geneNsQByName(queryParam, punyQ, request);
+				geneNsQByName(queryParam, name,punyQ, request);
 				resultMap = queryService.fuzzyQueryNameServer(queryParam);
 				renderResponse(request, response, resultMap, queryParam);
 				return;
@@ -302,9 +302,10 @@ public class QueryController extends BaseController {
 		}
 	}
 	
-	private void geneNsQByName(QueryParam queryParam, String punyQ, HttpServletRequest request){
+	private void geneNsQByName(DomainQueryParam queryParam, String domainQ,String punyQ, HttpServletRequest request){
 		queryParam.setQueryType(QueryType.SEARCHNS);
-		queryParam.setQ(WhoisUtil.escapeQueryChars(punyQ));
+		queryParam.setQ(domainQ);
+		queryParam.setDomainPuny(punyQ);
 		request.setAttribute("pageBean", queryParam.getPage());
 		request.setAttribute("queryPath", "nameservers");
 		setMaxRecordsForFuzzyQ(queryParam);

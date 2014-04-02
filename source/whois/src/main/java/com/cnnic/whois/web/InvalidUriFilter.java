@@ -23,7 +23,7 @@ import com.cnnic.whois.util.WhoisUtil;
 import com.cnnic.whois.view.FormatType;
 import com.cnnic.whois.view.ViewResolver;
 /**
- * filter invalid uri
+ * filter invalid uri which spring can't catch
  * @author nic
  *
  */
@@ -32,7 +32,7 @@ public class InvalidUriFilter implements Filter {
 	@Override
 	public void destroy() {
 	}
-
+	
 	@Override
 	public void doFilter(ServletRequest arg0, ServletResponse arg1,
 			FilterChain chain) throws IOException, ServletException {
@@ -45,12 +45,23 @@ public class InvalidUriFilter implements Filter {
 			displayErrorMessage(request, response, chain, format, queryType);
 			return;
 		}
+		String decodeUri = StringUtils.EMPTY;
 		String uri = path.substring(request.getContextPath().length());
+		try{
+			decodeUri = WhoisUtil.urlDecode(uri);
+			if(decodeUri.contains(" ")){
+				displayErrorMessage(request, response, chain, format, queryType);
+				return;
+			}
+		}catch(Exception e){
+			displayErrorMessage(request, response, chain, format, queryType);
+			return;
+		}
 		if (uri.contains("ip/::/")) {
 			displayErrorMessage(request, response, chain, format, queryType);
-		} else {
-			chain.doFilter(request, response);
+			return;
 		}
+		chain.doFilter(request, response);
 	}
 
 	@Override

@@ -1,5 +1,7 @@
 package com.cnnic.whois.dao.query.search;
 
+import com.cnnic.whois.bean.DomainQueryParam;
+import com.cnnic.whois.bean.PageBean;
 import com.cnnic.whois.bean.QueryParam;
 import com.cnnic.whois.bean.QueryType;
 import com.cnnic.whois.bean.index.NameServerIndex;
@@ -33,8 +35,19 @@ public class NsQueryDao extends AbstractSearchQueryDao<NameServerIndex> {
 	@Override
 	public SearchResult<NameServerIndex> search(QueryParam param)
 			throws QueryException {
-		String q = param.getQ();
-		SearchResult<NameServerIndex> result = query(q, param.getPage());
+		DomainQueryParam domainQueryParam = (DomainQueryParam) param;
+		PageBean page = param.getPage();
+		String q = domainQueryParam.getQ();
+		String escapeQ = escapeSolrChar(q);
+		String domainPuny = domainQueryParam.getDomainPuny();
+		domainPuny = escapeSolrChar(domainPuny);
+		String queryStr = "unicodeName:" + escapeQ;
+		if(q.startsWith("xn--") || q.contains(".xn--")){//punycode part search
+			queryStr = 
+				"ldhName:" + domainPuny
+				+ " OR " + queryStr;
+		}
+		SearchResult<NameServerIndex> result = query(queryStr, page);
 		return result;
 	}
 }

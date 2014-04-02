@@ -41,10 +41,12 @@ public class DomainQueryDao extends AbstractSearchQueryDao<DomainIndex> {
 		q = escapeSolrChar(q);
 		String domainPuny = domainQueryParam.getDomainPuny();
 		domainPuny = escapeSolrChar(domainPuny);
-		String queryStr = 
-//				"ldhName:" + domainPuny
-//				+ " OR " + 
-				"unicodeName:" + q;
+		String queryStr = "unicodeName:" + q;
+		if(q.startsWith("xn--") || q.contains(".xn--")){//punycode part search
+			queryStr = 
+				"ldhName:" + domainPuny
+				+ " OR " + queryStr;
+		}
 		SearchResult<DomainIndex> result = query(queryStr, page);
 		return result;
 	}
