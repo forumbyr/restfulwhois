@@ -18,6 +18,11 @@ import com.cnnic.whois.execption.RedirectExecption;
 import com.cnnic.whois.util.IpUtil;
 import com.cnnic.whois.util.WhoisProperties;
 import com.cnnic.whois.util.WhoisUtil;
+/**
+ * query service 
+ * @author nic
+ *
+ */
 @Service
 public class QueryService {
 	private static Long MIN_AS_NUM = 0L;
@@ -26,7 +31,13 @@ public class QueryService {
 	private QueryEngine queryEngine ;
 	public static int MAX_SIZE_FUZZY_QUERY = Integer.parseInt(WhoisProperties
 			.getMaxFuzzyQuery());
-
+	/**
+	 * query ip
+	 * @param ipQueryParam:ip str
+	 * @return query result map
+	 * @throws QueryException
+	 * @throws RedirectExecption
+	 */
 	public Map<String, Object> queryIP(IpQueryParam ipQueryParam) throws QueryException,
 		RedirectExecption {
 		long[] ipLongs = IpUtil.parsingIp(ipQueryParam.getIpInfo(), ipQueryParam.getIpLength());
@@ -42,7 +53,13 @@ public class QueryService {
 		}
 		return map;
 	}
-	
+	/**
+	 * query as
+	 * @param queryParam:as num
+	 * @return query result map
+	 * @throws QueryException
+	 * @throws RedirectExecption
+	 */
 	public Map<String, Object> queryAS(QueryParam queryParam)
 			throws QueryException, RedirectExecption {
 		String autnum = queryParam.getQ();
@@ -61,7 +78,13 @@ public class QueryService {
 		}
 		return resultMap;
 	}
-
+	/**
+	 * fuzzy query ns
+	 * @param queryParam:ns query str
+	 * @return query result map
+	 * @throws QueryException
+	 * @throws RedirectExecption
+	 */
 	public Map<String, Object> fuzzyQueryNameServer(QueryParam queryParam) throws QueryException,
 			RedirectExecption {
 		Map dnrMap = queryEngine.query(QueryType.SEARCHNS,queryParam);
@@ -70,7 +93,13 @@ public class QueryService {
 		}
 		return dnrMap;
 	}
-
+	/**
+	 * query domain
+	 * @param queryParam:domain param
+	 * @return query result map
+	 * @throws QueryException
+	 * @throws RedirectExecption
+	 */
 	public Map<String, Object> queryDomain(QueryParam queryParam) throws QueryException, RedirectExecption {
 		Map rirMap = queryEngine.query(QueryType.RIRDOMAIN, queryParam);
 		Map dnrMap = queryEngine.query(QueryType.DNRDOMAIN, queryParam);
@@ -95,6 +124,13 @@ public class QueryService {
 		return wholeMap;
 	}
 	
+	/**
+	 * query entity
+	 * @param queryParam:entity param
+	 * @return query result map
+	 * @throws QueryException
+	 * @throws SQLException
+	 */
 	public Map<String, Object> queryEntity(QueryParam queryParam) throws QueryException, SQLException {
 		try {
 			Map map = queryEngine.query(QueryType.ENTITY, queryParam);
@@ -106,7 +142,13 @@ public class QueryService {
 			throw new QueryException(e);
 		}
 	}
-	
+	/**
+	 * fuzzy query entity
+	 * @param entityQueryParam:entity id or handle
+	 * @return query result map
+	 * @throws QueryException
+	 * @throws SQLException
+	 */
 	public Map<String, Object> fuzzyQueryEntity(EntityQueryParam entityQueryParam)
 			throws QueryException, SQLException {
 		try {
@@ -119,7 +161,12 @@ public class QueryService {
 			throw new QueryException(e);
 		}
 	}
-	
+	/**
+	 * common query 
+	 * @param queryParam
+	 * @return query result map
+	 * @throws QueryException
+	 */
 	public Map<String, Object> query(QueryParam queryParam) throws QueryException {
 		try {
 			Map map = queryEngine.query(queryParam.getQueryType(), queryParam);
@@ -131,7 +178,12 @@ public class QueryService {
 			throw new QueryException(e);
 		}
 	}
-
+	/**
+	 * query ds
+	 * @param queryParam:ds id
+	 * @return query result map
+	 * @throws QueryException
+	 */
 	public Map<String, Object> queryDsData(QueryParam queryParam) throws QueryException {
 		try {
 			Map map = queryEngine.query(QueryType.DSDATA, queryParam);
@@ -143,7 +195,12 @@ public class QueryService {
 			throw new QueryException(e);
 		}
 	}
-	
+	/**
+	 * query event
+	 * @param queryParam:event id
+	 * @return query result map
+	 * @throws QueryException
+	 */
 	public Map<String, Object> queryEvents(QueryParam queryParam) throws QueryException {
 		try {
 			Map map = queryEngine.query(QueryType.EVENTS, queryParam);
@@ -155,7 +212,13 @@ public class QueryService {
 			throw new QueryException(e);
 		}
 	}
-
+	/**
+	 * query error
+	 * @param errorCode:error code
+	 * @param queryParam :error code
+	 * @return query result map
+	 * @throws QueryException
+	 */
 	public Map<String, Object> queryError(String errorCode,QueryParam queryParam) throws QueryException {
 		try {
 			Map result = queryEngine.query(QueryType.ERRORMSG, new QueryParam(errorCode));
@@ -165,7 +228,12 @@ public class QueryService {
 			throw new QueryException(e);
 		}
 	}
-
+	/**
+	 * query help
+	 * @param queryParam:help id
+	 * @return query result map
+	 * @throws QueryException
+	 */
 	public Map<String, Object> queryHelp(QueryParam queryParam) throws QueryException {
 		try {
 			Map helpMap = null;
@@ -175,7 +243,13 @@ public class QueryService {
 			throw new QueryException(e);
 		}
 	}
-	
+	/**
+	 * query redirect url
+	 * @param queryType:query type
+	 * @param queryPara:query param
+	 * @throws QueryException
+	 * @throws RedirectExecption
+	 */
 	private void getRedirectionURL(String queryType, String queryPara)
 			throws QueryException, RedirectExecption {
 		queryEngine.query(QueryType.REDIRECTION, 

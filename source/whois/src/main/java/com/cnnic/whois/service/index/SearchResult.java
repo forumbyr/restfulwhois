@@ -2,7 +2,12 @@ package com.cnnic.whois.service.index;
 
 import java.util.LinkedList;
 import java.util.List;
-
+/**
+ * search result bean,for search query
+ * @author nic
+ *
+ * @param <T>
+ */
 public class SearchResult<T> {
 
 	private double searchTime;
@@ -10,7 +15,10 @@ public class SearchResult<T> {
 	private long totalResults;
 
 	private List<T> resultList = new LinkedList<T>();
-
+	/**
+	 * get search time
+	 * @return
+	 */
 	public double getSearchTime() {
 		return searchTime;
 	}

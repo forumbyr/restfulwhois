@@ -10,7 +10,11 @@ import com.cnnic.whois.dao.admin.ExColumnDAO;
 import com.cnnic.whois.execption.ManagementException;
 import com.cnnic.whois.util.ColumnCache;
 import com.cnnic.whois.util.WhoisUtil;
-
+/**
+ * dynamic column service
+ * @author nic
+ *
+ */
 @Service
 public class ExColumnService {
 	

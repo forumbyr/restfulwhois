@@ -11,7 +11,11 @@ import com.cnnic.whois.execption.ManagementException;
 import com.cnnic.whois.util.IpUtil;
 import com.cnnic.whois.util.TransformUtils;
 import com.cnnic.whois.util.WhoisUtil;
-
+/**
+ * redirect service
+ * @author nic
+ *
+ */
 @Service
 public class RedirectionService {
 	

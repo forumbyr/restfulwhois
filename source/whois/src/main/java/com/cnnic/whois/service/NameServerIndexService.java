@@ -12,7 +12,11 @@ import com.cnnic.whois.bean.index.NameServerIndex;
 import com.cnnic.whois.bean.index.SearchCondition;
 import com.cnnic.whois.service.index.SearchResult;
 import com.cnnic.whois.util.WhoisProperties;
-
+/**
+ * ns search index service
+ * @author nic
+ *
+ */
 public class NameServerIndexService {
 	private static NameServerIndexService indexService = new NameServerIndexService(
 			WhoisProperties.getNameServerSolrUrl());
@@ -21,7 +25,11 @@ public class NameServerIndexService {
 	public static NameServerIndexService getIndexService() {
 		return indexService;
 	}
-
+	/**
+	 * query ns 
+	 * @param searchCondition
+	 * @return search result
+	 */
 	public SearchResult<NameServerIndex> queryNameServers(
 			SearchCondition searchCondition) {
 		SolrQuery solrQuery = new SolrQuery();
@@ -42,7 +50,11 @@ public class NameServerIndexService {
 		}
 		return searchResult;
 	}
-
+	/**
+	 * set search result
+	 * @param searchResult
+	 * @param queryResponse
+	 */
 	private void setSearchResult(SearchResult<NameServerIndex> searchResult,
 			QueryResponse queryResponse) {
 		searchResult

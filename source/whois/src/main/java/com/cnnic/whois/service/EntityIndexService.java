@@ -13,7 +13,11 @@ import com.cnnic.whois.bean.index.EntityIndex;
 import com.cnnic.whois.bean.index.SearchCondition;
 import com.cnnic.whois.service.index.SearchResult;
 import com.cnnic.whois.util.WhoisProperties;
-
+/**
+ * entity index service
+ * @author nic
+ *
+ */
 public class EntityIndexService {
 	private static EntityIndexService indexService = new EntityIndexService(
 			WhoisProperties.getEntitySolrUrl());
@@ -25,7 +29,11 @@ public class EntityIndexService {
 	public static EntityIndexService getIndexService() {
 		return indexService;
 	}
-
+	/**
+	 * price query
+	 * @param handleOrName
+	 * @return search result
+	 */
 	public SearchResult<EntityIndex> preciseQueryEntitiesByHandleOrName(
 			String handleOrName) {
 		handleOrName = handleOrName.replace(" ", "\\ ").replace(":", "\\:");
@@ -44,7 +52,13 @@ public class EntityIndexService {
 		searchCondition.setRow(QueryService.MAX_SIZE_FUZZY_QUERY);
 		return queryEntities(searchCondition);
 	}
-
+	/**
+	 * fuzzy query entity
+	 * @param fuzzyQueryParamName
+	 * @param handleOrName
+	 * @param page 
+	 * @return search result
+	 */
 	public SearchResult<EntityIndex> fuzzyQueryEntitiesByHandleAndName(
 			String fuzzyQueryParamName, String handleOrName, PageBean page) {
 		handleOrName = handleOrName.replace(" ", "\\ ").replace(":", "\\:");
@@ -64,7 +78,11 @@ public class EntityIndexService {
 		page.setRecordsCount(Long.valueOf(result.getTotalResults()).intValue());
 		return result;
 	}
-
+	/**
+	 * query entities
+	 * @param searchCondition
+	 * @return search result
+	 */
 	public SearchResult<EntityIndex> queryEntities(
 			SearchCondition searchCondition) {
 		SolrQuery solrQuery = new SolrQuery();
@@ -85,7 +103,11 @@ public class EntityIndexService {
 		}
 		return searchResult;
 	}
-
+	/**
+	 * set search result
+	 * @param searchResult
+	 * @param queryResponse
+	 */
 	private void setSearchResult(SearchResult<EntityIndex> searchResult,
 			QueryResponse queryResponse) {
 		searchResult.setSearchTime(queryResponse.getElapsedTime() / 1000.0D);

@@ -13,7 +13,11 @@ import com.cnnic.whois.dao.admin.AccessControlDAO;
 import com.cnnic.whois.execption.ManagementException;
 import com.cnnic.whois.util.PermissionCache;
 import com.cnnic.whois.util.WhoisUtil;
-
+/**
+ * access control service
+ * @author nic
+ *
+ */
 @Service
 public class AccessControlService {
 	
