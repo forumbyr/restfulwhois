@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 
 import net.sf.json.JSONArray;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +31,7 @@ public class PermissionController {
 	 * @param map
 	 * @return
 	 */
-	public Map<String, Object> removeUnAuthedEntries(Map<String, Object> map) {
+	public Map<String, Object> removeUnAuthedAndEmptyEntries(Map<String, Object> map) {
 		String role = AuthenticationHolder.getAuthentication().getRole();
 		if (null == map) {
 			return map;
@@ -65,6 +66,17 @@ public class PermissionController {
 		for (Iterator<Entry<String, Object>> it = map.entrySet().iterator(); it
 				.hasNext();) {
 			Entry<String, Object> entry = it.next();
+			Object value = entry.getValue();
+			if(null == value){
+				continue;
+			}
+			if(value instanceof String && StringUtils.isBlank(value.toString())){
+				continue;
+			}
+			boolean isEmptyArray = isStringArrayAndAllItemsAreEmpty(value);
+			if(isEmptyArray){
+				continue;
+			}
 			if (keyFieldsWithoutPrefix.contains(entry.getKey())) {
 				resultMap.put(entry.getKey(), entry.getValue());
 				removeUnAuthedEntriesObject(entry.getValue(), role);
@@ -72,6 +84,31 @@ public class PermissionController {
 		}
 		return resultMap;
 	}
+	
+	/**
+	 * check if param 'value' is an string array and all items are empty,eg :[""," "] 
+	 * @param value
+	 * @return boolean
+	 */
+	private boolean isStringArrayAndAllItemsAreEmpty(Object value) {
+		if(null == value){
+			return true;
+		}
+		boolean valueIsInstanceOfStringArray = value instanceof String[];
+		if(! valueIsInstanceOfStringArray){
+			return false;
+		}
+		boolean isEmptyArray = true;
+		String[] valueArray = (String[]) value;
+		for(String valueItem:valueArray){
+			if(StringUtils.isNotBlank(valueItem)){
+				isEmptyArray = false;
+				break;
+			}
+		}
+		return isEmptyArray;
+	}
+
 	/**
 	 * get multi objects from query result map
 	 * @param map:query result map

@@ -24,10 +24,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import com.cnnic.whois.bean.DomainQueryParam;
 import com.cnnic.whois.bean.EntityQueryParam;
 import com.cnnic.whois.bean.IpQueryParam;
+import com.cnnic.whois.bean.NsQueryParam;
 import com.cnnic.whois.bean.QueryParam;
 import com.cnnic.whois.bean.QueryType;
 import com.cnnic.whois.dao.query.QueryEngine;
-import com.cnnic.whois.dao.query.search.EntityQueryDao;
 import com.cnnic.whois.execption.QueryException;
 import com.cnnic.whois.execption.RedirectExecption;
 import com.cnnic.whois.service.QueryService;
@@ -71,22 +71,24 @@ public class QueryController extends BaseController {
 			HttpServletRequest request, HttpServletResponse response)
 			throws QueryException, RedirectExecption, IOException,
 			ServletException {
-		request.setAttribute("queryType", "domain");
 		DomainQueryParam domainQueryParam = super.praseDomainQueryParams(request);
-		if (StringUtils.isBlank(name) || ValidateUtils.isInvalidPunyPartSearch(name)) {
+		if (StringUtils.isBlank(name)) {
 			super.renderResponseError400(request, response,domainQueryParam);
 			return;
 		}
-		name = WhoisUtil.urlDecode(name);
-		name = StringUtils.trim(name);
+		try {
+			name = super.decodeAndTrim(name);
+		} catch (Exception e) {
+			super.renderResponseError400(request, response,domainQueryParam);
+			return;
+		}
 		name = ValidateUtils.deleteLastPoint(name);
-		Map<String, Object> resultMap = null;
 		name = super.getNormalization(name);
-		if ("*".equals(name)) {
+		Map<String, Object> resultMap = null;
+		if (ValidateUtils.ASTERISK.equals(name)|| name.startsWith(ValidateUtils.ASTERISK)) {
 			super.renderResponseError422(request, response,domainQueryParam);
 			return;
 		}
-		name = WhoisUtil.getLowerCaseByLabel(name);
 		String punyDomainName = name;
 		try {
 			punyDomainName = IDN.toASCII(name);// long lable exception/not utf8 exception
@@ -95,14 +97,16 @@ public class QueryController extends BaseController {
 			return;
 		}
 		request.setAttribute("queryPara", IDN.toUnicode(punyDomainName));
-		if (!ValidateUtils.isCommonInvalidStr(punyDomainName)) {
+		if (!ValidateUtils.validateFuzzyDomain(name)) {
 			super.renderResponseError400(request, response,domainQueryParam);
 			return;
 		}
+		name = WhoisUtil.getLowerCaseByLabel(name);
 		domainQueryParam.setQueryType(QueryType.SEARCHDOMAIN);
 		domainQueryParam.setQ(name);
 		domainQueryParam.setDomainPuny(punyDomainName);
 		setMaxRecordsForFuzzyQ(domainQueryParam);
+		domainQueryParam.setFuzzyQ(true);
 		resultMap = queryService.query(domainQueryParam);
 		request.setAttribute("pageBean", domainQueryParam.getPage());
 		request.setAttribute("queryPath", "domains");
@@ -110,7 +114,7 @@ public class QueryController extends BaseController {
 	}
 	
 	/**
-	 * pricise query domain by domain name
+	 * precise query domain by domain name
 	 * @param domainName:domain name
 	 * @param request:http request
 	 * @param response:http response:http response
@@ -119,31 +123,37 @@ public class QueryController extends BaseController {
 	 * @throws IOException
 	 * @throws ServletException
 	 */
-	@RequestMapping(value = "/domain/{domainName}", method = RequestMethod.GET)
+	@RequestMapping(value = {"/domain/{domainName}"}, method = RequestMethod.GET)
 	@ResponseBody
 	public void queryDomain(@PathVariable String domainName,
 			HttpServletRequest request, HttpServletResponse response)
 			throws QueryException, RedirectExecption, IOException,
 			ServletException {
-		domainName = StringUtils.trim(domainName);
-		domainName = StringUtils.lowerCase(domainName);
-		domainName = ValidateUtils.deleteLastPoint(domainName);
+		DomainQueryParam domainQueryParam = super.praseDomainQueryParams(request);
+		if (StringUtils.isBlank(domainName)) {
+			super.renderResponseError400(request, response,domainQueryParam);
+			return;
+		}
+		try {
+			domainName = super.decodeAndTrim(domainName);
+		} catch (Exception e) {
+			super.renderResponseError400(request, response,domainQueryParam);
+			return;
+		}
 		String punyDomainName = domainName;
 		Map<String, Object> resultMap = null;
-		DomainQueryParam domainQueryParam = super
-				.praseDomainQueryParams(request);
-		request.setAttribute("queryType", "domain");
 		try {
-			domainName = WhoisUtil.toChineseUrl(domainName);
 			punyDomainName = IDN.toASCII(domainName);// long lable exception
 		} catch (Exception e) {
 			super.renderResponseError400(request, response,domainQueryParam);
 			return;
 		}
 		request.setAttribute("queryPara", IDN.toUnicode(punyDomainName));
-		if (!ValidateUtils.validateDomainName(punyDomainName)) {
+		if (!ValidateUtils.validateDomainNameIsValidIdna(domainName)) {
 			resultMap = WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE,domainQueryParam);
 		} else {
+			domainName = ValidateUtils.deleteLastPoint(domainName);
+			domainName = WhoisUtil.getLowerCaseByLabel(domainName);
 			domainQueryParam.setQueryType(QueryType.DOMAIN);
 			domainQueryParam.setQ(domainName);
 			domainQueryParam.setDomainPuny(punyDomainName);
@@ -180,20 +190,21 @@ public class QueryController extends BaseController {
 		if (StringUtils.isNotBlank(fn)) {
 			q = fn;
 		}
-		q = WhoisUtil.urlDecode(q);
+		if(q.length()>ValidateUtils.MAX_DOMAIN_LENGTH){
+			super.renderResponseError400(request, response,queryParam);
+			return;
+		}
 		try {
-			IDN.toASCII(q);// long lable exception/not utf8 exception
+			q = super.decodeAndTrim(q);
 		} catch (Exception e) {
 			super.renderResponseError400(request, response,queryParam);
 			return;
 		}
 		q = super.getNormalization(q);
-		if ("*".equals(q)) {
+		if (ValidateUtils.ASTERISK.equals(q) || q.startsWith(ValidateUtils.ASTERISK)) {
 			super.renderResponseError422(request, response,queryParam);
 			return;
 		}
-		q = WhoisUtil.getLowerCaseIfAllAscii(q);
-		String decodeQ = WhoisUtil.toChineseUrl(q);
 		String fuzzyQuerySolrPropName = "handle";
 		String paramName = "handle";
 		if (StringUtils.isNotBlank(fn)) {
@@ -202,17 +213,17 @@ public class QueryController extends BaseController {
 		}
 		queryParam.setQueryType(QueryType.SEARCHENTITY);
 		queryParam.setFuzzyQueryParamName(fuzzyQuerySolrPropName);
-		queryParam.setQ(decodeQ);
+		queryParam.setQ(q);
 		setMaxRecordsForFuzzyQ(queryParam);
 		resultMap = queryService.fuzzyQueryEntity(queryParam);
 		request.setAttribute("pageBean", queryParam.getPage());
 		request.setAttribute("queryPath", "entities");
-		request.setAttribute("queryPara", paramName + ":" + decodeQ);
+		request.setAttribute("queryPara", paramName + ":" + q);
 		renderResponse(request, response, resultMap, queryParam);
 	}
 
 	/**
-	 * pricise query entity by name
+	 * precise query entity by name
 	 * @param entityName:entity name
 	 * @param request:http request
 	 * @param response:http response
@@ -221,17 +232,27 @@ public class QueryController extends BaseController {
 	 * @throws IOException
 	 * @throws ServletException
 	 */
-	@RequestMapping(value = "/entity/{entityName}", method = RequestMethod.GET)
+	@RequestMapping(value = "/entity/{handle}", method = RequestMethod.GET)
 	@ResponseBody
-	public void queryEntity(@PathVariable String entityName,
+	public void queryEntity(@PathVariable String handle,
 			HttpServletRequest request, HttpServletResponse response)
 			throws QueryException, SQLException, IOException, ServletException {
 		EntityQueryParam queryParam = super.praseEntityQueryParams(request);
 		queryParam.setQueryType(QueryType.ENTITY);
-		queryParam.setQ(entityName);
+		if (StringUtils.isBlank(handle) && handle.length()>ValidateUtils.MAX_DOMAIN_LENGTH) {
+			super.renderResponseError400(request, response,queryParam);
+			return;
+		}
+		try {
+			handle = super.decodeAndTrim(handle);
+		} catch (Exception e) {
+			super.renderResponseError400(request, response,queryParam);
+			return;
+		}
+		queryParam.setQ(handle);
 		Map<String, Object> resultMap = queryService.queryEntity(queryParam);
 		request.setAttribute("queryType", "entity");
-		request.setAttribute("queryPara", entityName);
+		request.setAttribute("queryPara", handle);
 		renderResponse(request, response, resultMap, queryParam);
 	}
 
@@ -255,86 +276,66 @@ public class QueryController extends BaseController {
 			throws QueryException, SQLException, IOException, ServletException,
 			RedirectExecption {
 		Map<String, Object> resultMap = null;
-		DomainQueryParam queryParam = super.praseDomainQueryParams(request);
+		NsQueryParam queryParam = super.parseNsQueryParams(request);
 		request.setAttribute("queryType", "nameserver");
+		queryParam.setFuzzyQ(true);
 		if (StringUtils.isBlank(name) && StringUtils.isBlank(ip)) {
 			super.renderResponseError400(request, response,queryParam);
 			return;
 		}
 		if(StringUtils.isNotBlank(name)){
-			name = StringUtils.trim(name);
-			name = WhoisUtil.urlDecode(name);
+			if(name.length()>ValidateUtils.MAX_DOMAIN_LENGTH){
+				super.renderResponseError400(request, response,queryParam);
+				return;
+			}
+			try {
+				name = super.decodeAndTrim(name);
+			} catch (Exception e) {
+				super.renderResponseError400(request, response,queryParam);
+				return;
+			}
 			name = ValidateUtils.deleteLastPoint(name);
 			name = super.getNormalization(name);
-			if ("*".equals(name)) {
+			if (ValidateUtils.ASTERISK.equals(name) || name.startsWith(ValidateUtils.ASTERISK)) {
 				super.renderResponseError422(request, response,queryParam);
 				return;
 			}
-			name = WhoisUtil.getLowerCaseByLabel(name);
-			String punyQ = name;
+			String punyName = name;
 			try {
 				// long lable exception/not utf8 exception
-				punyQ = IDN.toASCII(name);
+				punyName = IDN.toASCII(name);
 			} catch (Exception e) {
 				super.renderResponseError400(request, response,queryParam);
 				return;
 			}
 			request.setAttribute("queryPara", name);
-			if (!ValidateUtils.verifyFuzzyDomain(name) || ValidateUtils.isInvalidPunyPartSearch(name) ) {
-				resultMap = WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE,queryParam);
+			if (!ValidateUtils.validateFuzzyDomain(name)) {
+				super.renderResponseError400(request, response,queryParam);
+				return;
 			} else {
-				geneNsQByName(queryParam, name,punyQ, request);
+				name = WhoisUtil.getLowerCaseByLabel(name);
+				geneNsFuzzyQByName(queryParam, name,punyName, request);
 				resultMap = queryService.fuzzyQueryNameServer(queryParam);
 				renderResponse(request, response, resultMap, queryParam);
 				return;
 			}
-		}
-		
-		if(StringUtils.isNotBlank(ip) && StringUtils.isBlank(name)){
-			String net = "0";
-			if (!ValidateUtils.verifyIP(ip, net)) {
+		}else if(StringUtils.isNotBlank(ip)){
+			if(ip.length()>ValidateUtils.MAX_DOMAIN_LENGTH){
 				super.renderResponseError400(request, response,queryParam);
 				return;
 			}
-			geneNsQByIp(queryParam, ip, request);
+			if (!ValidateUtils.verifyIP(ip)) {
+				super.renderResponseError400(request, response,queryParam);
+				return;
+			}
+			geneNsFuzzyQByIp(queryParam, ip, request);
 			resultMap = queryService.fuzzyQueryNameServer(queryParam);
 			renderResponse(request, response, resultMap, queryParam);
 		}
 	}
 	
-	private void geneNsQByName(DomainQueryParam queryParam, String domainQ,String punyQ, HttpServletRequest request){
-		queryParam.setQueryType(QueryType.SEARCHNS);
-		queryParam.setQ(domainQ);
-		queryParam.setDomainPuny(punyQ);
-		request.setAttribute("pageBean", queryParam.getPage());
-		request.setAttribute("queryPath", "nameservers");
-		setMaxRecordsForFuzzyQ(queryParam);
-	}
-	
 	/**
-	 * generate ns query params by ip
-	 * @param queryParam:origin queryParam
-	 * @param ip:ip param
-	 * @param request:http request
-	 */
-	private void geneNsQByIp(QueryParam queryParam, String ip, HttpServletRequest request){
-		String punyQ = ip;
-		request.setAttribute("queryPara", ip);
-		queryParam.setQueryType(QueryType.SEARCHNS);
-		punyQ = punyQ.replace("\\:", ":");
-		if(ValidateUtils.isIpv4(punyQ)){
-			punyQ = EntityQueryDao.geneNsQByPreciseIpv4(punyQ);			
-		}else if (ValidateUtils.isIPv6(punyQ)){
-			punyQ = EntityQueryDao.geneNsQByPreciseIpv6(punyQ);
-		}
-		queryParam.setQ(punyQ);
-		request.setAttribute("pageBean", queryParam.getPage());
-		request.setAttribute("queryPath", "nameservers");
-		setMaxRecordsForFuzzyQ(queryParam);
-	}
-
-	/**
-	 * query ns by ns name
+	 * precise query ns by ns name
 	 * @param nsName:ns name
 	 * @param request:http request
 	 * @param response:http response
@@ -349,22 +350,31 @@ public class QueryController extends BaseController {
 			HttpServletRequest request, HttpServletResponse response)
 			throws QueryException, SQLException, IOException, ServletException {
 		request.setAttribute("queryType", "nameserver");
-		nsName = StringUtils.trim(nsName);
-		nsName = StringUtils.lowerCase(nsName);
-		nsName = ValidateUtils.deleteLastPoint(nsName);
-		String punyNsName = WhoisUtil.toChineseUrl(nsName);
-		DomainQueryParam queryParam = super.praseDomainQueryParams(request);
+		NsQueryParam queryParam = super.parseNsQueryParams(request);
+		if (StringUtils.isBlank(nsName)) {
+			super.renderResponseError400(request, response,queryParam);
+			return;
+		}
+		String punyNsName = nsName;
 		try{
-			punyNsName = IDN.toASCII(WhoisUtil.toChineseUrl(nsName));
+			try {
+				nsName = super.decodeAndTrim(nsName);
+			} catch (Exception e) {
+				super.renderResponseError400(request, response,queryParam);
+				return;
+			}
+			punyNsName = IDN.toASCII(nsName);
 			// long lable exception/not utf8 exception
 		} catch (Exception e) {
 			super.renderResponseError400(request, response,queryParam);
 			return;
 		}
 		Map<String, Object> resultMap = null;
-		if (!ValidateUtils.verifyNameServer(nsName)) {
+		if (!ValidateUtils.validateDomainNameIsValidIdna(nsName)) {
 			resultMap = WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE,queryParam);
 		} else {
+			nsName = ValidateUtils.deleteLastPoint(nsName);
+			nsName = WhoisUtil.getLowerCaseByLabel(nsName);
 			queryParam.setQ(nsName);
 			queryParam.setDomainPuny(punyNsName);
 			queryParam.setQueryType(QueryType.NAMESERVER);
@@ -391,6 +401,10 @@ public class QueryController extends BaseController {
 			throws QueryException, RedirectExecption, IOException,
 			ServletException {
 		QueryParam queryParam = super.praseQueryParams(request);
+		if(StringUtils.isBlank(autnum) || autnum.length()>ValidateUtils.MAX_DOMAIN_LENGTH){
+			super.renderResponseError400(request, response,queryParam);
+			return;
+		}
 		queryParam.setQ(autnum);
 		Map<String, Object> resultMap = queryService.queryAS(queryParam);
 		request.setAttribute("queryType", "autnum");
@@ -512,6 +526,10 @@ public class QueryController extends BaseController {
 		ip = StringUtils.trim(ip);
 		Map<String, Object> resultMap = null;
 		IpQueryParam queryParam = super.praseIpQueryParams(request);
+		if(StringUtils.isBlank(ip)){
+			super.renderResponseError400(request, response,queryParam);
+			return;
+		}
 		String strInfo = ip;
 		request.setAttribute("queryPara", ip);
 		request.setAttribute("queryType", "ip");
@@ -688,15 +706,21 @@ public class QueryController extends BaseController {
 		Map<String, Object> resultMap = null;
 		QueryParam queryParam = praseQueryParams(request);
 		queryParam.setQueryType(queryType);
+		if (StringUtils.isBlank(q)) {
+			super.renderResponseError400(request, response,queryParam);
+			return;
+		}
+		try {
+			q = super.decodeAndTrim(q);
+		} catch (Exception e) {
+			super.renderResponseError400(request, response,queryParam);
+			return;
+		}
 		queryParam.setQ(q);
 		request.setAttribute("queryType", queryType.getName());
-		if (!ValidateUtils.isCommonInvalidStr(queryParam.getQ())) {
-			super.renderResponseError400(request, response,queryParam);
-		} else {
-			resultMap = queryService.query(queryParam);
-			request.setAttribute("queryPara", q);
-			renderResponse(request, response, resultMap, queryParam);
-		}
+		resultMap = queryService.query(queryParam);
+		request.setAttribute("queryPara", q);
+		renderResponse(request, response, resultMap, queryParam);
 	}
 
 	/**

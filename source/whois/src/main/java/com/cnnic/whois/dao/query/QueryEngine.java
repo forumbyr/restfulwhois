@@ -65,7 +65,7 @@ public class QueryEngine {
 	public Map<String, Object> query(QueryType queryType, QueryParam param)
 			throws QueryException, RedirectExecption {
 		Map<String, Object> result = queryExecutor.query(queryType, param);
-		result = permissionController.removeUnAuthedEntries(result);
+		result = permissionController.removeUnAuthedAndEmptyEntries(result);
 		result = viewResolver.format(result, param.getFormat());
 		result = responseFilter.removeNoticesEntries(result);
 		return result;

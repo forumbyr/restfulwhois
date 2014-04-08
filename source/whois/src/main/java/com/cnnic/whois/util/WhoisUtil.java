@@ -168,8 +168,7 @@ public class WhoisUtil {
 	public static final String JOINPOSTATLADDRESSFILED = JOINFILEDPRX
 			+ "postalAddress";
 	public static final String JOINVARIANTS = JOINFILEDPRX + "variants";
-	public static final String JOINNAMESERVER = JOINFILEDPRX + "nameServer";
-	public static final String JOINNAREGISTRAR = JOINFILEDPRX + "registrar";
+	public static final String JOINNAMESERVER = JOINFILEDPRX + "nameServers";
 	public static final String JOINNANOTICES = JOINFILEDPRX + "notices";
 	public static final String JOINREMARKS = JOINFILEDPRX + "remarks";
 	public static final String JOINEVENTS = JOINFILEDPRX + "events";
@@ -177,16 +176,14 @@ public class WhoisUtil {
 	public static final String JOINSECUREDNS = JOINFILEDPRX + "secureDNS";
 	public static final String JOINDSDATA = JOINFILEDPRX + "dsData";
 	public static final String JOINKEYDATA = JOINFILEDPRX + "keyData";
+	public static final String JOINIP = JOINFILEDPRX + "ip";
 	public static final String JOINDALEGATIONKEYS = JOINFILEDPRX
 			+ "delegationKeys";
-	// public static final String[] JOIN_FIELDS_WITH_CAMEL_STYLE = new
-	// String[]{"postalAddress","nameServer","publicIds"
-	// ,"secureDNS","dsData","keyData","delegationKeys"};
 	public static final List<String> JOIN_FIELDS_WITH_CAMEL_STYLE = Arrays
-			.asList(new String[] { "postalAddress", "nameServer", "publicIds",
+			.asList(new String[] { "postalAddress", "nameServers", "publicIds",
 					"secureDNS", "dsData", "keyData", "delegationKeys",
 					"ipAddresses", "rdapConformance", "vcardArray",
-					"asEventActor" });
+					"asEventActor",SEARCH_RESULTS_TRUNCATED_EKEY });
 
 	public static final String VALUEARRAYPRX = "'~'";
 	public static final String HANDLE = "Handle";
@@ -196,6 +193,7 @@ public class WhoisUtil {
 	public static final String IPPREFIX = "ipAddresses";
 	public static final String IPV4PREFIX = "v4";
 	public static final String IPV6PREFIX = "v6";
+	public static final String IPPREFIX_NS = "ip";
 
 	public static final String SEARCHDOMAIN = "domains";
 
@@ -212,7 +210,7 @@ public class WhoisUtil {
 			ARRAYFILEDPRX + "Entity_Names", "Lang", JOINNANOTICES,
 			ARRAYFILEDPRX + "Status", ARRAYFILEDPRX + "Roles",
 			JOINPOSTATLADDRESSFILED, ARRAYFILEDPRX + "Emails", JOINPHONFILED,
-			JOINREMARKS, JOINLINKFILED, "Port43", JOINEVENTS, JOINNAREGISTRAR,
+			JOINREMARKS, JOINLINKFILED, "Port43", JOINEVENTS,
 			JOINPUBLICIDS, "Bday", "Anniversary", "Gender", "Kind",
 			"Language_Tag_1", "Pref1", "Language_Tag_2", "Pref2", "Org",
 			"Title", "Role", "Geo", "Key", "Tz", "Url" };
@@ -229,7 +227,7 @@ public class WhoisUtil {
 			"Unicode_Name", "Lang", JOINNANOTICES, JOINVARIANTS,
 			ARRAYFILEDPRX + "Status",
 			JOINNAMESERVER, // JOINDALEGATIONKEYS,
-			"Port43", JOINEVENTS, JOINENTITESFILED, JOINNAREGISTRAR,
+			"Port43", JOINEVENTS, JOINENTITESFILED,
 			JOINLINKFILED, JOINREMARKS, JOINPUBLICIDS, JOINSECUREDNS };
 
 	public static String[] RIRDomainKeyFileds = { "Handle", "Ldh_Name", "Lang",
@@ -248,13 +246,14 @@ public class WhoisUtil {
 			"Unicode_Name", "Lang", JOINNANOTICES, ARRAYFILEDPRX + "Status",
 			ARRAYFILEDPRX + "IPV4_Addresses", ARRAYFILEDPRX + "IPV6_Addresses",
 			"Port43", JOINREMARKS, JOINLINKFILED, JOINEVENTS, JOINENTITESFILED,
-			JOINNAREGISTRAR };
+			JOINIP};
 
 	public static String[] phonesKeyFileds = { ARRAYFILEDPRX + "Office",
 			ARRAYFILEDPRX + "Fax", ARRAYFILEDPRX + "Mobile", "phonesId" };
 
 	public static String[] variantsKeyFileds = { ARRAYFILEDPRX + "Relation",
 			ARRAYFILEDPRX + "Variant_Names", "variantsId", "IDNTable" };
+	public static String[] nsipKeyFileds = { "ip","type" };
 
 	public static String[] ErrorMessageKeyFileds = { "Error_Code", "Title",
 			"Lang", ARRAYFILEDPRX + "Description", JOINNANOTICES };
@@ -301,17 +300,17 @@ public class WhoisUtil {
 
 	public static String[] extendColumnTableTypes = { "autnum", "dnrdomain",
 			"dnrentity", "dsData", "errormessage", "events", "help", "ip",
-			"keyData", "link", "nameserver", "notices", "phones",
+			"keyData", "link", "nameserver", "notices","nsip", "phones",
 			"postaladdress", "publicIds", "registrar", "remarks", "rirdomain",
 			"rirentity", "secureDNS", "variants" };
 
 	public static String[][] keyFiledsSet = { ASKeyFileds, DNRDomainKeyFileds,
 			DNREntityKeyFileds, dsDataKeyFileds, ErrorMessageKeyFileds,
 			eventsKeyFileds, helpKeyFileds, IPKeyFileds, keyDataKeyFileds,
-			linkKeyFileds, nameServerKeyFileds, noticesKeyFileds,
+			linkKeyFileds, nameServerKeyFileds, noticesKeyFileds,nsipKeyFileds,
 			phonesKeyFileds, postalAddressKeyFileds, publicIdsKeyFileds,
 			registrarKeyFileds, remarksKeyFileds, RIRDomainKeyFileds,
-			RIREntityKeyFileds, secureDNSKeyFileds, variantsKeyFileds };
+			RIREntityKeyFileds, secureDNSKeyFileds, variantsKeyFileds};
 
 	public static final String UNPROCESSABLEERRORCODE = "422";
 
@@ -688,41 +687,34 @@ public class WhoisUtil {
 				nameList.add("{\"type\":\"work\"}");
 				nameList.add("text");
 
-				List<Object> AddressList = new ArrayList<Object>();
-				AddressList.add("");
-				String KeyName = "";
-				String Element = "";
-				String Result = "";
-				KeyName = getDisplayKeyName("Street1");
-				Element = ((Map) postalAddress).get(KeyName).toString();
-				Result = Result + Element;
-				Result = Result + (String) ",";
+				List<Object> addressList = new ArrayList<Object>();
+				addressList.add("");
+				String keyName = "";
+				String element = "";
+				String result = "";
+				
+				
+				keyName = getDisplayKeyName("Street1");
+				Object elementObj = ((Map) postalAddress).get(keyName);
+				if(null != elementObj){
+					element = ((Map) postalAddress).get(keyName).toString();
+					result = result + element;
+					result = result + (String) ",";
+				}
+				keyName = getDisplayKeyName("Street2");
+				elementObj = ((Map) postalAddress).get(keyName);
+				if(null != elementObj){
+					result = result + element;
+					addressList.add(result);
+				}
 
-				KeyName = getDisplayKeyName("Street2");
-				Element = ((Map) postalAddress).get(KeyName).toString();
-				Result = Result + Element;
-				AddressList.add(Result);
+				appendVcardInfo("Street",postalAddress, addressList);
+				appendVcardInfo("City",postalAddress, addressList);
+				appendVcardInfo("SP",postalAddress, addressList);
+				appendVcardInfo("Postal_Code",postalAddress, addressList);
+				appendVcardInfo("Country",postalAddress, addressList);
 
-				KeyName = getDisplayKeyName("Street");
-				Element = ((Map) postalAddress).get(KeyName).toString();
-				AddressList.add(Element);
-
-				KeyName = getDisplayKeyName("City");
-				Element = ((Map) postalAddress).get(KeyName).toString();
-				AddressList.add(Element);
-
-				KeyName = getDisplayKeyName("SP");
-				Element = ((Map) postalAddress).get(KeyName).toString();
-				AddressList.add(Element);
-
-				KeyName = getDisplayKeyName("Postal_Code");
-				Element = ((Map) postalAddress).get(KeyName).toString();
-				AddressList.add(Element);
-
-				KeyName = getDisplayKeyName("Country");
-				Element = ((Map) postalAddress).get(KeyName).toString();
-				AddressList.add(Element);
-				nameList.add(AddressList);
+				nameList.add(addressList);
 				list.add(nameList);
 				map.remove("postalAddress");
 			} else if (postalAddress instanceof Object[]) {
@@ -732,48 +724,33 @@ public class WhoisUtil {
 					nameList.add("{\"type\":\"work\"}");
 					nameList.add("text");
 
-					List<Object> AddressList = new ArrayList<Object>();
-					AddressList.add("");
-					String KeyName = "";
-					String Element = "";
-					String Result = "";
-					KeyName = getDisplayKeyName("Street1");
-					Element = ((Map) postalAddressObject).get(KeyName)
-							.toString();
-					Result = Result + Element;
-					Result = Result + (String) ",";
+					List<Object> addressList = new ArrayList<Object>();
+					addressList.add("");
+					String keyName = "";
+					String element = "";
+					String result = "";
+					keyName = getDisplayKeyName("Street1");
+					
+					Object elementObj = ((Map) postalAddress).get(keyName);
+					if(null != elementObj){
+						element = ((Map) postalAddress).get(keyName).toString();
+						result = result + element;
+						result = result + (String) ",";
+					}
+					keyName = getDisplayKeyName("Street2");
+					elementObj = ((Map) postalAddress).get(keyName);
+					if(null != elementObj){
+						result = result + element;
+						addressList.add(result);
+					}
 
-					KeyName = getDisplayKeyName("Street2");
-					Element = ((Map) postalAddressObject).get(KeyName)
-							.toString();
-					Result = Result + Element;
-					AddressList.add(Result);
-
-					KeyName = getDisplayKeyName("Street");
-					Element = ((Map) postalAddressObject).get(KeyName)
-							.toString();
-					AddressList.add(Element);
-
-					KeyName = getDisplayKeyName("City");
-					Element = ((Map) postalAddressObject).get(KeyName)
-							.toString();
-					AddressList.add(Element);
-
-					KeyName = getDisplayKeyName("SP");
-					Element = ((Map) postalAddressObject).get(KeyName)
-							.toString();
-					AddressList.add(Element);
-
-					KeyName = getDisplayKeyName("Postal_Code");
-					Element = ((Map) postalAddressObject).get(KeyName)
-							.toString();
-					AddressList.add(Element);
-
-					KeyName = getDisplayKeyName("Country");
-					Element = ((Map) postalAddressObject).get(KeyName)
-							.toString();
-					AddressList.add(Element);
-					nameList.add(AddressList);
+					appendVcardInfo("Street",postalAddress, addressList);
+					appendVcardInfo("City",postalAddress, addressList);
+					appendVcardInfo("SP",postalAddress, addressList);
+					appendVcardInfo("Postal_Code",postalAddress, addressList);
+					appendVcardInfo("Country",postalAddress, addressList);
+					
+					nameList.add(addressList);
 					list.add(nameList);
 				}
 				map.remove(getDisplayKeyName("postal_Address"));
@@ -960,6 +937,24 @@ public class WhoisUtil {
 		Resultlist.add(list);
 		map.put("vcardArray", Resultlist.toArray());
 		return map;
+	}
+
+	/**
+	 * append vcard info to arrayList
+	 * @param key
+	 * @param postalAddress
+	 * @param vcardList
+	 * @param result
+	 */
+	private static void appendVcardInfo(String key, Object postalAddress,
+			List<Object> vcardList) {
+		String keyName = getDisplayKeyName(key);
+		Object elementObj = ((Map) postalAddress).get(keyName);
+		if(null == elementObj){
+			return ;
+		}
+		String element = elementObj.toString();
+		vcardList.add(element);
 	}
 
 	/**

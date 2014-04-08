@@ -39,7 +39,7 @@ public class RedirectionQueryDao extends AbstractDbQueryDao {
 		String tableName = redirectionQueryParam.getTableName();
 		String queryInfo = redirectionQueryParam.getQ();
 		if (tableName .equals(WhoisUtil.AUTNUM)) {
-			int queryPara = Integer.parseInt(queryInfo );
+			long queryPara = Long.valueOf(queryInfo );
 			selectSql = WhoisUtil.SELECT_URL_AUTNUM_EDIRECTION1 + queryPara
 					+ WhoisUtil.SELECT_URL_AUTNUM_EDIRECTION2 + queryPara;
 		} else {

@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.cnnic.whois.util.IdnaUtil;
 import com.cnnic.whois.util.IpUtil;
 
 /***
@@ -11,35 +12,40 @@ import com.cnnic.whois.util.IpUtil;
  *
  */
 public class ValidateUtils {
+	public static final String ACE_PREFIX = "xn--";
+	public static final String ACE_PREFIX_INSIDE = ".xn--";
+	public static final String ASTERISK = "*";
+	private static final String VALID_IDNA_CHAR = "a";
+	public static final int MAX_DOMAIN_LENGTH = 255;
+	
 
 	/**
-	 * as invalid: xn--abc*def
-	 * @param q
-	 * @return
+	 * validate domain puny name is valid idna
+	 * @param domainName 
+	 * @return true if is valid idna,false if not
 	 */
-	public static boolean isInvalidPunyPartSearch(String q){
-		if (StringUtils.isBlank(q)){
+	public static boolean validateDomainNameIsValidIdna(String domainName){
+		if(StringUtils.isBlank(domainName) || !domainName.contains(".")){
 			return false;
 		}
-		return q.startsWith("xn--") && q.contains("*")&& !q.endsWith("*");
+		if(!domainName.startsWith(ACE_PREFIX) && isLdh(domainName)){
+			return true;
+		}
+		domainName = ValidateUtils.deleteLastPoint(domainName);
+		return IdnaUtil.isValidIdn(domainName);
 	}
 	
 	/**
-	 * Is a validated domain name
-	 * @param domainName 
-	 * @return boolean
+	 * validate domain puny name is valid idna,first replace * with valid idna char 'a'.for fuzzy search.
+	 * @param domainPunyName :may with Asterisk
+	 * @return true if is valid idna,false if not
 	 */
-	public static boolean validateDomainName(String domainName){
-		if (!isCommonInvalidStr(domainName)){
+	public static boolean validateDomainPunyNameWithAsteriskIsValidIdna(String domainPunyName){
+		if(StringUtils.isBlank(domainPunyName)){
 			return false;
 		}
-		if(domainName.length() > 255){
-			return false;
-		}
-		if(!domainName.startsWith("xn--") && !verifyNameServer(domainName)){
-			return false;
-		}
-		return true;
+		String domainPunyNameWithoutAsterisk = domainPunyName.replaceAll("\\*", VALID_IDNA_CHAR);
+		return IdnaUtil.isValidIdn(domainPunyNameWithoutAsterisk);
 	}
 	
 	/**
@@ -57,6 +63,73 @@ public class ValidateUtils {
 	}
 	
 	/**
+	 * check is ldh domain:
+	 * can only contain letter/digit/-,and * for fuzzy query
+	 * can't begin or end with -
+	 * domain length:[1-255]
+	 * label length:[1-63]
+	 * can't contain continuous *:**
+	 * @param domain
+	 * @return true if is,false if not
+	 */
+	public static boolean isFuzzyLdh(String domain) {
+		if(StringUtils.isBlank(domain)){
+			return false;
+		}
+		if(domain.length()>MAX_DOMAIN_LENGTH){
+			return false;
+		}
+		if(domain.contains("**")){
+			return false;
+		}
+		String ldhReg = "^(?!-)(?!.*?-$)([0-9a-zA-Z][0-9a-zA-Z-\\*]{0,62})(\\.[0-9a-zA-Z-\\*]{1,63})*$";
+		if (domain.matches(ldhReg)){
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * is valid ldh
+	 * @param domain
+	 * @return boolean
+	 */
+	public static boolean isLdh(String domain) {
+		if(StringUtils.isBlank(domain)){
+			return false;
+		}
+		if(domain.length()>MAX_DOMAIN_LENGTH){
+			return false;
+		}
+		String ldhReg = "^(?!-)(?!.*?-$)([0-9a-zA-Z][0-9a-zA-Z-]{0,62}\\.)+([0-9a-zA-Z][0-9a-zA-Z-]{0,62})?$";
+		if (domain.matches(ldhReg)){
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * validate fuzzy domain :
+	 * valid : cnnic*.cn, xn--abc*.cn, abc.xn--a*.cn,
+	 * invalid : [U-label].xn--abc*.cn
+	 * @param domain
+	 * @return
+	 */
+	public static boolean validateFuzzyDomain(String domain) {
+		if(StringUtils.isBlank(domain)){
+			return false;
+		}
+		if(domain.length()>MAX_DOMAIN_LENGTH){
+			return false;
+		}
+		if(isFuzzyLdh(domain)){
+			return true;
+		}
+		String domainWithoutAsterisk = domain.replaceAll("\\*", VALID_IDNA_CHAR);
+		return IdnaUtil.isValidIdn(domainWithoutAsterisk);
+	}
+	
+	/**
 	 * Contain Punctuation in a str
 	 * @param String str
 	 * @return boolean
@@ -70,50 +143,13 @@ public class ValidateUtils {
 	}
 	
 	/**
-	 * Verifying the NameServer parameters
-	 * 
-	 * @param String queryPara
-	 * @return The correct queryPara returns true, failure to return false
+	 * verify ip
+	 * @param ipStr
+	 * @return true if valid,false if not
 	 */
-	public static boolean verifyNameServer(String queryPara) {
-		if(StringUtils.isBlank(queryPara)){
-			return false;
-		}
-//		if (!isCommonInvalidStr(queryPara)){
-//			return false;
-//		}
-		if(queryPara.length() > 255){
-			return false;
-		}
-		return true;
-//		String fuzzyReg = "^(?!-.)(?!.*?-$)((\\*)?[\u0391-\uFFE50-9a-zA-Z-]{0,62}(\\*)?)+(\\.[\u0391-\uFFE50-9a-zA-Z-]{0,62}\\*?)*$";
-//		if (queryPara.matches(fuzzyReg))
-//			return true;
-//		return false;
-	}
-	
-	/**
-	 * verify fuzzy domain
-	 * @param String queryPara
-	 * @return boolean
-	 */
-	public static boolean verifyFuzzyDomain(String queryPara) {
-		if(StringUtils.isBlank(queryPara)){
-			return false;
-		}
-//		if (!isCommonInvalidStr(queryPara)){
-//			return false;
-//		}
-		if(queryPara.length() > 255){
-			return false;
-		}
-		String[] labels = queryPara.split(".");
-		for(String label:labels){
-			if(label.length()>62){
-				return false;
-			}
-		}
-		return true;
+	public static boolean verifyIP(String ipStr) {
+		String defaultIpLenthStr = "0";
+		return verifyIP(ipStr,defaultIpLenthStr);
 	}
 	
 	/**

@@ -1,6 +1,7 @@
 package com.cnnic.whois.controller;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
 import java.util.Map;
@@ -18,18 +19,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.cnnic.whois.bean.DomainQueryParam;
 import com.cnnic.whois.bean.EntityQueryParam;
 import com.cnnic.whois.bean.IpQueryParam;
+import com.cnnic.whois.bean.NsQueryParam;
 import com.cnnic.whois.bean.PageBean;
 import com.cnnic.whois.bean.QueryParam;
 import com.cnnic.whois.bean.QueryType;
+import com.cnnic.whois.dao.query.search.AbstractSearchQueryDao;
+import com.cnnic.whois.dao.query.search.EntityQueryDao;
 import com.cnnic.whois.execption.QueryException;
 import com.cnnic.whois.service.QueryService;
 import com.cnnic.whois.util.WhoisUtil;
+import com.cnnic.whois.util.validate.ValidateUtils;
 import com.cnnic.whois.view.FormatType;
 import com.cnnic.whois.view.ViewResolver;
+
 /**
  * base controller
+ * 
  * @author nic
- *
+ * 
  */
 public class BaseController {
 	@Autowired
@@ -40,7 +47,9 @@ public class BaseController {
 
 	/**
 	 * set max records for fuzzy query param
-	 * @param queryParam:query params
+	 * 
+	 * @param queryParam
+	 *            :query params
 	 */
 	protected void setMaxRecordsForFuzzyQ(QueryParam queryParam) {
 		if (queryParam.getFormat().isJsonOrXmlFormat()) {
@@ -51,10 +60,13 @@ public class BaseController {
 
 	/**
 	 * construct domain param
-	 * @param request:http request
+	 * 
+	 * @param request
+	 *            :http request
 	 * @return: domain param
 	 */
 	protected DomainQueryParam praseDomainQueryParams(HttpServletRequest request) {
+		request.setAttribute("queryType", "domain");
 		FormatType formatType = getFormatType(request);
 		logger.info("formatType:" + formatType);
 		PageBean page = getPageParam(request);
@@ -62,8 +74,24 @@ public class BaseController {
 	}
 
 	/**
-	 * construct entity  param
-	 * @param request:http request
+	 * construct ns param from request
+	 * 
+	 * @param request
+	 *            :http request
+	 * @return: domain param
+	 */
+	protected NsQueryParam parseNsQueryParams(HttpServletRequest request) {
+		FormatType formatType = getFormatType(request);
+		logger.info("formatType:" + formatType);
+		PageBean page = getPageParam(request);
+		return new NsQueryParam(formatType, page);
+	}
+
+	/**
+	 * construct entity param
+	 * 
+	 * @param request
+	 *            :http request
 	 * @return entity param
 	 */
 	protected EntityQueryParam praseEntityQueryParams(HttpServletRequest request) {
@@ -73,8 +101,10 @@ public class BaseController {
 	}
 
 	/**
-	 * construct  param
-	 * @param request:http request
+	 * construct param
+	 * 
+	 * @param request
+	 *            :http request
 	 * @return param
 	 */
 	public static QueryParam praseQueryParams(HttpServletRequest request) {
@@ -85,7 +115,9 @@ public class BaseController {
 
 	/**
 	 * construct ip query param
-	 * @param request:http request
+	 * 
+	 * @param request
+	 *            :http request
 	 * @return ip query param
 	 */
 	protected IpQueryParam praseIpQueryParams(HttpServletRequest request) {
@@ -96,6 +128,7 @@ public class BaseController {
 
 	/**
 	 * get page param
+	 * 
 	 * @param request
 	 * @return page param
 	 */
@@ -110,10 +143,15 @@ public class BaseController {
 
 	/**
 	 * render response
-	 * @param request:http request
-	 * @param response:http reponse
-	 * @param resultMap:query result map
-	 * @param queryParam:query param
+	 * 
+	 * @param request
+	 *            :http request
+	 * @param response
+	 *            :http reponse
+	 * @param resultMap
+	 *            :query result map
+	 * @param queryParam
+	 *            :query param
 	 * @throws IOException
 	 * @throws ServletException
 	 */
@@ -126,43 +164,53 @@ public class BaseController {
 
 	/**
 	 * render response error 400
-	 * @param request:http request
-	 * @param response:http response
-	 * @param queryParam:query param
+	 * 
+	 * @param request
+	 *            :http request
+	 * @param response
+	 *            :http response
+	 * @param queryParam
+	 *            :query param
 	 * @throws IOException
 	 * @throws ServletException
 	 * @throws QueryException
 	 */
 	protected void renderResponseError400(HttpServletRequest request,
-			HttpServletResponse response,QueryParam queryParam) throws IOException, ServletException,
-			QueryException {
-		Map<String, Object> resultMap = WhoisUtil
-				.processError(WhoisUtil.COMMENDRRORCODE,queryParam);
+			HttpServletResponse response, QueryParam queryParam)
+			throws IOException, ServletException, QueryException {
+		Map<String, Object> resultMap = WhoisUtil.processError(
+				WhoisUtil.COMMENDRRORCODE, queryParam);
 		viewResolver.writeResponse(getFormatType(request),
 				getQueryType(request), request, response, resultMap);
 	}
 
 	/**
 	 * render response for error 422
-	 * @param request:http request
-	 * @param response:http response
-	 * @param queryParam:query param
+	 * 
+	 * @param request
+	 *            :http request
+	 * @param response
+	 *            :http response
+	 * @param queryParam
+	 *            :query param
 	 * @throws IOException
 	 * @throws ServletException
 	 * @throws QueryException
 	 */
 	protected void renderResponseError422(HttpServletRequest request,
-			HttpServletResponse response,QueryParam queryParam) throws IOException, ServletException,
-			QueryException {
-		Map<String, Object> resultMap = WhoisUtil
-				.processError(WhoisUtil.UNPROCESSABLEERRORCODE,queryParam);
+			HttpServletResponse response, QueryParam queryParam)
+			throws IOException, ServletException, QueryException {
+		Map<String, Object> resultMap = WhoisUtil.processError(
+				WhoisUtil.UNPROCESSABLEERRORCODE, queryParam);
 		viewResolver.writeResponse(getFormatType(request),
 				getQueryType(request), request, response, resultMap);
 	}
 
 	/**
 	 * get format from cooike
-	 * @param request:http request
+	 * 
+	 * @param request
+	 *            :http request
 	 * @return format
 	 */
 	public static String getFormatCookie(HttpServletRequest request) {
@@ -177,10 +225,12 @@ public class BaseController {
 		}
 		return format;
 	}
-	
+
 	/**
 	 * get format type
-	 * @param request:http request
+	 * 
+	 * @param request
+	 *            :http request
 	 * @return format type
 	 */
 	public static FormatType getFormatType(HttpServletRequest request) {
@@ -206,7 +256,9 @@ public class BaseController {
 
 	/**
 	 * get query type
-	 * @param request:http request
+	 * 
+	 * @param request
+	 *            :http request
 	 * @return query type
 	 */
 	public static QueryType getQueryType(HttpServletRequest request) {
@@ -214,14 +266,16 @@ public class BaseController {
 			String queryType = (String) request.getAttribute("queryType");
 			return QueryType.getQueryType(queryType);
 		} else {
-			QueryParam param = (QueryParam) request.getAttribute("queryPara");//TODO:delete
+			QueryParam param = (QueryParam) request.getAttribute("queryPara");// TODO:delete
 			return param.getQueryType();
 		}
 	}
 
 	/**
 	 * is web browser
-	 * @param request:http request
+	 * 
+	 * @param request
+	 *            :http request
 	 * @return true if is,false if not
 	 */
 	public static boolean isWebBrowser(HttpServletRequest request) {
@@ -241,7 +295,9 @@ public class BaseController {
 
 	/**
 	 * get normalization format string
-	 * @param str:string
+	 * 
+	 * @param str
+	 *            :string
 	 * @return formated string
 	 */
 	protected String getNormalization(String str) {
@@ -249,5 +305,70 @@ public class BaseController {
 			return str;
 		}
 		return Normalizer.normalize(str, Form.NFKC);
+	}
+
+	/**
+	 * generate ns query params by ip,use solr
+	 * 
+	 * @param queryParam
+	 *            :origin queryParam
+	 * @param ip
+	 *            :ip param
+	 * @param request
+	 *            :http request
+	 */
+	protected void geneNsFuzzyQByIp(QueryParam queryParam, String ip,
+			HttpServletRequest request) {
+		request.setAttribute("queryPara", ip);
+		queryParam.setQueryType(QueryType.SEARCHNS);
+		String solrQ = ip.replace("\\:", ":");
+		if (ValidateUtils.isIpv4(solrQ)) {
+			solrQ = EntityQueryDao.geneNsQByPreciseIpv4(solrQ);
+		} else if (ValidateUtils.isIPv6(solrQ)) {
+			solrQ = EntityQueryDao.geneNsQByPreciseIpv6(solrQ);
+		}
+		queryParam.setQ(solrQ);
+		request.setAttribute("pageBean", queryParam.getPage());
+		request.setAttribute("queryPath", "nameservers");
+		setMaxRecordsForFuzzyQ(queryParam);
+	}
+
+	/**
+	 * generate ns fuzzy query by ns name,use solr
+	 * 
+	 * @param queryParam
+	 * @param domainQ
+	 * @param punyQ
+	 * @param request
+	 */
+	protected void geneNsFuzzyQByName(QueryParam queryParam, String domainQ,
+			String punyQ, HttpServletRequest request) {
+		queryParam.setQueryType(QueryType.SEARCHNS);
+		request.setAttribute("pageBean", queryParam.getPage());
+		request.setAttribute("queryPath", "nameservers");
+
+		String escapeQ = AbstractSearchQueryDao.escapeSolrChar(domainQ);
+		String escapePunyQ = AbstractSearchQueryDao.escapeSolrChar(punyQ);
+		String queryStr = "unicodeName:" + escapeQ;
+		if (domainQ.startsWith("xn--") || domainQ.contains(".xn--")) {
+			queryStr = "ldhName:" + escapePunyQ + " OR " + queryStr;
+		}
+		queryParam.setQ(queryStr);
+		setMaxRecordsForFuzzyQ(queryParam);
+	}
+	
+	/**
+	 * decode and trim str
+	 * @param str 
+	 * @return str after decode and gtrim
+	 * @throws UnsupportedEncodingException
+	 */
+	protected String decodeAndTrim(String str) throws UnsupportedEncodingException{
+		if (StringUtils.isBlank(str)) {
+			return StringUtils.trim(str);
+		}
+		str = WhoisUtil.urlDecode(str);
+		str = StringUtils.trim(str);
+		return str ;
 	}
 }

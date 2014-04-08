@@ -134,7 +134,7 @@ public class EchoController extends BaseController {
             			String queryParaPuny = IDN.toASCII(domainName);
             			Map<String, Object> resultMap = null;
             			QueryParam queryParam = super.praseQueryParams(request);
-            			if (!ValidateUtils.validateDomainName(queryParaPuny)) {
+            			if (!ValidateUtils.validateDomainNameIsValidIdna(queryParaPuny)) {
             				resultMap = WhoisUtil.processError(WhoisUtil.COMMENDRRORCODE,queryParam);
             			} else {
             				queryParam.setQ(domainName);

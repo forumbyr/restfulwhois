@@ -19,6 +19,7 @@ import com.cnnic.whois.bean.QueryParam;
 import com.cnnic.whois.bean.QueryType;
 import com.cnnic.whois.controller.BaseController;
 import com.cnnic.whois.execption.QueryException;
+import com.cnnic.whois.util.WhoisProperties;
 import com.cnnic.whois.util.WhoisUtil;
 import com.cnnic.whois.view.FormatType;
 import com.cnnic.whois.view.ViewResolver;
@@ -47,6 +48,10 @@ public class InvalidUriFilter implements Filter {
 		}
 		String decodeUri = StringUtils.EMPTY;
 		String uri = path.substring(request.getContextPath().length());
+		if(StringUtils.isBlank(uri)){
+			displayErrorMessage(request, response, chain, format, queryType);
+			return;
+		}
 		try{
 			decodeUri = WhoisUtil.urlDecode(uri);
 			if(decodeUri.contains(" ")){
@@ -57,9 +62,20 @@ public class InvalidUriFilter implements Filter {
 			displayErrorMessage(request, response, chain, format, queryType);
 			return;
 		}
-		if (uri.contains("ip/::/")) {
+		if (decodeUri.contains("//") || decodeUri.contains("ip/::/")) {
 			displayErrorMessage(request, response, chain, format, queryType);
 			return;
+		}
+		if(!"/".equals(decodeUri)){//if not /,then must begin with rdapUrl
+			String uriWithoutPrefixSlash = decodeUri.substring(1,decodeUri.length());
+			if (!uriWithoutPrefixSlash.startsWith(WhoisProperties.getRdapUrl())) {
+				displayErrorMessage(request, response, chain, format, queryType);
+				return;
+			}else if(!uriWithoutPrefixSlash.equals(WhoisProperties.getRdapUrl()+"/")
+					&& decodeUri.endsWith("/")){
+				displayErrorMessage(request, response, chain, format, queryType);
+				return;
+			}
 		}
 		chain.doFilter(request, response);
 	}

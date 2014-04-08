@@ -5,7 +5,7 @@ package com.cnnic.whois.bean;
  *
  */
 public enum QueryJoinType {
-	ENTITIES("entities"), NAMESERVER("nameServer"), DSDATA("dsData"), EVENTS(
+	ENTITIES("entities"), NAMESERVER("nameServers"), DSDATA("dsData"), EVENTS(
 			"events"), KEYDATA("keyData"), DELEGATIONKEYS("delegationKeys"), PUBLICIDS(
 			"publicIds"), LINKS("links"), NOTICES("notices"), PHONES("phones"), POSTALADDRESS(
 			"postalAddress"), REMARKS("remarks"), SECUREDNS("secureDNS"), VARIANTS(

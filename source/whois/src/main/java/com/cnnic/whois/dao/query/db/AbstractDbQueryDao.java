@@ -151,6 +151,7 @@ public abstract class AbstractDbQueryDao implements QueryDao{
 					keyName.equals(WhoisUtil.MULTIPRXREMARKS) ||
 					keyName.equals(WhoisUtil.JOINPUBLICIDS) ||
 					keyName.equals(WhoisUtil.JOINDSDATA)||
+					keyName.equals(WhoisUtil.JOINEVENTS)||
 					keyName.equals(WhoisUtil.JOINKEYDATA)){
 				mapInfo.put(keyName, list.toArray());
 			}else{

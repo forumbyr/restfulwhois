@@ -103,15 +103,18 @@ public class EntityQueryDao extends AbstractSearchQueryDao {
 		if (map.containsKey(WhoisUtil.QUERY_JOIN_TYPE) && map.containsKey("events")) {
 			String entityHandle = (String) map.get(WhoisUtil.HANDLE);
 			Map<String, Object> map_Events = new LinkedHashMap<String, Object>();
-			map_Events = (Map<String, Object>) map.get("events");
-			if (map_Events.containsKey("Event_Actor")) {
-				String eventactor = (String) map_Events.get("Event_Actor");
-				if (entityHandle.equals(eventactor)) {
-					map_Events.remove("Event_Actor");
-					List<Map<String, Object>> listEvents = new ArrayList<Map<String, Object>>();
-					listEvents.add(map_Events);
-					map.put("asEventActor", listEvents.toArray());
-					map.remove("events");
+			Object[] eventsObjs = (Object[]) map.get("events");
+			for(Object eventObj : eventsObjs){
+				map_Events = (Map<String, Object>) eventObj;
+				if (map_Events.containsKey("Event_Actor")) {
+					String eventactor = (String) map_Events.get("Event_Actor");
+					if (entityHandle.equals(eventactor)) {
+						map_Events.remove("Event_Actor");
+						List<Map<String, Object>> listEvents = new ArrayList<Map<String, Object>>();
+						listEvents.add(map_Events);
+						map.put("asEventActor", listEvents.toArray());
+						map.remove("events");
+					}
 				}
 			}
 		}

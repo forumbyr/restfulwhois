@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.springframework.stereotype.Repository;
 
-import com.cnnic.whois.bean.PageBean;
 import com.cnnic.whois.bean.QueryParam;
 import com.cnnic.whois.bean.QueryType;
 import com.cnnic.whois.bean.index.Index;
@@ -23,7 +22,6 @@ public class SearchDomainQueryDao extends AbstractSearchQueryDao {
 	@Override
 	public Map<String, Object> query(QueryParam param) throws QueryException {
 		Map<String, Object> map = null;
-		PageBean page = param.getPage();
 		SearchResult<? extends Index> result = searchQueryExecutor.query(
 				QueryType.SEARCHDOMAIN, param);
 		if (result.getResultList().size() == 0) {
