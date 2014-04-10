@@ -27,7 +27,6 @@ import com.cnnic.whois.bean.IpQueryParam;
 import com.cnnic.whois.bean.NsQueryParam;
 import com.cnnic.whois.bean.QueryParam;
 import com.cnnic.whois.bean.QueryType;
-import com.cnnic.whois.dao.query.QueryEngine;
 import com.cnnic.whois.execption.QueryException;
 import com.cnnic.whois.execption.RedirectExecption;
 import com.cnnic.whois.service.QueryService;
@@ -44,8 +43,6 @@ import com.cnnic.whois.util.validate.ValidateUtils;
 public class QueryController extends BaseController {
 	@Autowired
 	private QueryService queryService;
-	@Autowired
-	private QueryEngine queryEngine;
 	
 	/**
 	 * api doc
@@ -82,7 +79,6 @@ public class QueryController extends BaseController {
 			super.renderResponseError400(request, response,domainQueryParam);
 			return;
 		}
-		name = ValidateUtils.deleteLastPoint(name);
 		name = super.getNormalization(name);
 		Map<String, Object> resultMap = null;
 		if (ValidateUtils.ASTERISK.equals(name)|| name.startsWith(ValidateUtils.ASTERISK)) {
@@ -101,6 +97,7 @@ public class QueryController extends BaseController {
 			super.renderResponseError400(request, response,domainQueryParam);
 			return;
 		}
+		name = ValidateUtils.deleteLastPoint(name);
 		name = WhoisUtil.getLowerCaseByLabel(name);
 		domainQueryParam.setQueryType(QueryType.SEARCHDOMAIN);
 		domainQueryParam.setQ(name);
@@ -190,7 +187,7 @@ public class QueryController extends BaseController {
 		if (StringUtils.isNotBlank(fn)) {
 			q = fn;
 		}
-		if(q.length()>ValidateUtils.MAX_DOMAIN_LENGTH){
+		if(q.length()>ValidateUtils.MAX_DOMAIN_LENGTH_WITHOUT_LAST_DOT){
 			super.renderResponseError400(request, response,queryParam);
 			return;
 		}
@@ -239,7 +236,9 @@ public class QueryController extends BaseController {
 			throws QueryException, SQLException, IOException, ServletException {
 		EntityQueryParam queryParam = super.praseEntityQueryParams(request);
 		queryParam.setQueryType(QueryType.ENTITY);
-		if (StringUtils.isBlank(handle) && handle.length()>ValidateUtils.MAX_DOMAIN_LENGTH) {
+		request.setAttribute("queryType", "entity");
+		request.setAttribute("queryPara", handle);
+		if (StringUtils.isBlank(handle) || handle.length()>ValidateUtils.MAX_DOMAIN_LENGTH_WITHOUT_LAST_DOT) {
 			super.renderResponseError400(request, response,queryParam);
 			return;
 		}
@@ -251,8 +250,6 @@ public class QueryController extends BaseController {
 		}
 		queryParam.setQ(handle);
 		Map<String, Object> resultMap = queryService.queryEntity(queryParam);
-		request.setAttribute("queryType", "entity");
-		request.setAttribute("queryPara", handle);
 		renderResponse(request, response, resultMap, queryParam);
 	}
 
@@ -284,7 +281,7 @@ public class QueryController extends BaseController {
 			return;
 		}
 		if(StringUtils.isNotBlank(name)){
-			if(name.length()>ValidateUtils.MAX_DOMAIN_LENGTH){
+			if(name.length()>ValidateUtils.MAX_DOMAIN_LENGTH_WITHOUT_LAST_DOT){
 				super.renderResponseError400(request, response,queryParam);
 				return;
 			}
@@ -294,7 +291,6 @@ public class QueryController extends BaseController {
 				super.renderResponseError400(request, response,queryParam);
 				return;
 			}
-			name = ValidateUtils.deleteLastPoint(name);
 			name = super.getNormalization(name);
 			if (ValidateUtils.ASTERISK.equals(name) || name.startsWith(ValidateUtils.ASTERISK)) {
 				super.renderResponseError422(request, response,queryParam);
@@ -313,6 +309,7 @@ public class QueryController extends BaseController {
 				super.renderResponseError400(request, response,queryParam);
 				return;
 			} else {
+				name = ValidateUtils.deleteLastPoint(name);
 				name = WhoisUtil.getLowerCaseByLabel(name);
 				geneNsFuzzyQByName(queryParam, name,punyName, request);
 				resultMap = queryService.fuzzyQueryNameServer(queryParam);
@@ -320,7 +317,7 @@ public class QueryController extends BaseController {
 				return;
 			}
 		}else if(StringUtils.isNotBlank(ip)){
-			if(ip.length()>ValidateUtils.MAX_DOMAIN_LENGTH){
+			if(ip.length()>ValidateUtils.MAX_DOMAIN_LENGTH_WITHOUT_LAST_DOT){
 				super.renderResponseError400(request, response,queryParam);
 				return;
 			}
@@ -401,7 +398,7 @@ public class QueryController extends BaseController {
 			throws QueryException, RedirectExecption, IOException,
 			ServletException {
 		QueryParam queryParam = super.praseQueryParams(request);
-		if(StringUtils.isBlank(autnum) || autnum.length()>ValidateUtils.MAX_DOMAIN_LENGTH){
+		if(StringUtils.isBlank(autnum) || autnum.length()>ValidateUtils.MAX_DOMAIN_LENGTH_WITHOUT_LAST_DOT){
 			super.renderResponseError400(request, response,queryParam);
 			return;
 		}

@@ -2,6 +2,8 @@ package com.cnnic.whois.controller;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
 import java.util.Map;
@@ -31,6 +33,7 @@ import com.cnnic.whois.util.WhoisUtil;
 import com.cnnic.whois.util.validate.ValidateUtils;
 import com.cnnic.whois.view.FormatType;
 import com.cnnic.whois.view.ViewResolver;
+import com.google.common.net.InetAddresses;
 
 /**
  * base controller
@@ -322,6 +325,7 @@ public class BaseController {
 		request.setAttribute("queryPara", ip);
 		queryParam.setQueryType(QueryType.SEARCHNS);
 		String solrQ = ip.replace("\\:", ":");
+		solrQ = getFormatedIp(solrQ);
 		if (ValidateUtils.isIpv4(solrQ)) {
 			solrQ = EntityQueryDao.geneNsQByPreciseIpv4(solrQ);
 		} else if (ValidateUtils.isIPv6(solrQ)) {
@@ -331,6 +335,16 @@ public class BaseController {
 		request.setAttribute("pageBean", queryParam.getPage());
 		request.setAttribute("queryPath", "nameservers");
 		setMaxRecordsForFuzzyQ(queryParam);
+	}
+	
+	private String getFormatedIp(String ip){
+		try {
+			InetAddress inetAddr = InetAddress.getByName(ip);
+			return InetAddresses.toAddrString(inetAddr);
+		} catch (UnknownHostException e) {
+			logger.error("error:"+e);
+			return ip;
+		}
 	}
 
 	/**

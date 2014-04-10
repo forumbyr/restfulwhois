@@ -67,7 +67,7 @@ public class QueryEngine {
 		Map<String, Object> result = queryExecutor.query(queryType, param);
 		result = permissionController.removeUnAuthedAndEmptyEntries(result);
 		result = viewResolver.format(result, param.getFormat());
-		result = responseFilter.removeNoticesEntries(result);
+		result = responseFilter.removeNonTopNoticesEntries(result);
 		return result;
 	}
 	

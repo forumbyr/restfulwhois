@@ -22,19 +22,29 @@ public class ResponseFilter {
 	@Autowired
 	private DbQueryExecutor dbQueryExecutor;
 
-	public Map<String, Object> removeNoticesEntries(Map<String, Object> map) {
+	/**
+	 * remove non-top notice entries in query result map
+	 * @param map
+	 * @return map
+	 */
+	public Map<String, Object> removeNonTopNoticesEntries(Map<String, Object> map) {
 		if (null == map) {
 			return map;
 		}
 		for (Iterator<Entry<String, Object>> it = map.entrySet().iterator(); it
 				.hasNext();) {
 			Entry<String, Object> entry = it.next();
-			removeUnAuthedEntriesObject(entry.getValue());
+			removeNonTopNoticeEntriesObject(entry.getValue());
 		}
 		return map;
 	}
 
-	private Map<String, Object> removeUnAuthedEntriesMap(
+	/**
+	 * remove notice for map
+	 * @param map
+	 * @return map
+	 */
+	private Map<String, Object> removeNonTopNoticeEntriesMap(
 			Map<String, Object> map) {
 		if (null == map) {
 			return map;
@@ -45,37 +55,49 @@ public class ResponseFilter {
 			Entry<String, Object> entry = it.next();
 			if (!entry.getKey().equals(WhoisUtil.NOTICES)) {
 				resultMap.put(entry.getKey(), entry.getValue());
-				removeUnAuthedEntriesObject(entry.getValue());
+				removeNonTopNoticeEntriesObject(entry.getValue());
 			}
 		}
 		return resultMap;
 	}
 
-	private void removeUnAuthedEntriesObject(Object object) {
+	/**
+	 * remove notice for object
+	 * @param object
+	 */
+	private void removeNonTopNoticeEntriesObject(Object object) {
 		if (null == object) {
 			return;
 		}
 		if (object instanceof Object[]) {
 			removeUnAuthedEntriesArray((Object[]) object);
 		} else if (object instanceof JSONArray) {
-			removeUnAuthedEntriesJsonArray((JSONArray) object);
+			removeNonTopNoticeEntriesJsonArray((JSONArray) object);
 		} else if (object instanceof Map) {
 			Map<String, Object> map = (Map<String, Object>) object;
-			Map<String, Object> result = removeUnAuthedEntriesMap(map);
+			Map<String, Object> result = removeNonTopNoticeEntriesMap(map);
 			map.clear();
 			map.putAll(result);
 		}
 	}
 
-	private void removeUnAuthedEntriesJsonArray(JSONArray object) {
+	/**
+	 * remove notice for json array
+	 * @param object
+	 */
+	private void removeNonTopNoticeEntriesJsonArray(JSONArray object) {
 		for (int i = 0; i < object.size(); i++) {
-			removeUnAuthedEntriesObject(object.get(i));
+			removeNonTopNoticeEntriesObject(object.get(i));
 		}
 	}
 
+	/**
+	 * remove notice for object array
+	 * @param array
+	 */
 	private void removeUnAuthedEntriesArray(Object[] array) {
 		for (Object object : array) {
-			removeUnAuthedEntriesObject(object);
+			removeNonTopNoticeEntriesObject(object);
 		}
 	}
 }

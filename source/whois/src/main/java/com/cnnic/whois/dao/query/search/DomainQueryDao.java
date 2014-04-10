@@ -42,10 +42,10 @@ public class DomainQueryDao extends AbstractSearchQueryDao<DomainIndex> {
 		DomainQueryParam domainQueryParam = (DomainQueryParam) param;
 		PageBean page = param.getPage();
 		String q = domainQueryParam.getQ();
-		q = escapeSolrChar(q);
+		String escapeQ = escapeSolrChar(q);
 		String domainPuny = domainQueryParam.getDomainPuny();
 		domainPuny = escapeSolrChar(domainPuny);
-		String queryStr = "unicodeName:" + q;
+		String queryStr = "unicodeName:" + escapeQ;
 		if (q.startsWith(ValidateUtils.ACE_PREFIX) || q.contains(ValidateUtils.ACE_PREFIX_INSIDE)) {
 			queryStr = "ldhName:" + domainPuny + " OR " + queryStr;
 		}

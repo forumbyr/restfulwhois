@@ -29,7 +29,7 @@
 	</filter>
 	<filter-mapping>
 		<filter-name>HttpMethodFilter</filter-name>
-		<url-pattern>/*</url-pattern>
+		<url-pattern>/.well-known/rdap/*</url-pattern>
 	</filter-mapping>
 	<filter>
 		<filter-name>InvalidUriFilter</filter-name>
