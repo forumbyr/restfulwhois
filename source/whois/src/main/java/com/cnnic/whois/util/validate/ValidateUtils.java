@@ -18,7 +18,23 @@ public class ValidateUtils {
 	public static final String ASTERISK = "*";
 	private static final String VALID_IDNA_CHAR = "a";
 	public static final int MAX_DOMAIN_LENGTH_WITHOUT_LAST_DOT = 253;
+	public static final int MIN_DOMAIN_LENGTH_WITHOUT_LAST_DOT = 3;
 	
+	/**
+	 * validate domain lenth,length is without last dot
+	 * @param domainWithoutLastDot:domain without last dot
+	 * @return true if valid,false if not
+	 */
+	private static boolean validateDomainLenth(String domainWithoutLastDot){
+		if(StringUtils.isBlank(domainWithoutLastDot)){
+			return false;
+		}
+		if(domainWithoutLastDot.length() < MIN_DOMAIN_LENGTH_WITHOUT_LAST_DOT
+				|| domainWithoutLastDot.length() > MAX_DOMAIN_LENGTH_WITHOUT_LAST_DOT){
+			return false;
+		}
+		return true;
+	}
 
 	/**
 	 * validate domain puny name is valid idna
@@ -32,10 +48,13 @@ public class ValidateUtils {
 		if(!domainName.startsWith(ACE_PREFIX) && isLdh(domainName)){
 			return true;
 		}
-		domainName = ValidateUtils.deleteLastPoint(domainName);
+		domainName = deleteLastPoint(domainName);
+		if(!validateDomainLenth(domainName)){
+			return false;
+		}
 		return IdnaUtil.isValidIdn(domainName);
 	}
-	
+
 	/**
 	 * Verifying the String parameters
 	 * 
@@ -64,7 +83,8 @@ public class ValidateUtils {
 		if(StringUtils.isBlank(domain)){
 			return false;
 		}
-		if(domain.length()>MAX_DOMAIN_LENGTH_WITHOUT_LAST_DOT){
+		domain = deleteLastPoint(domain);
+		if(!validateDomainLenth(domain)){
 			return false;
 		}
 		String ldhReg = "^(?!-)(?!.*?-$)([0-9a-zA-Z][0-9a-zA-Z-\\*]{0,62})(\\.[0-9a-zA-Z-\\*]{1,63})*$";
@@ -83,7 +103,8 @@ public class ValidateUtils {
 		if(StringUtils.isBlank(domain)){
 			return false;
 		}
-		if(domain.length()>MAX_DOMAIN_LENGTH_WITHOUT_LAST_DOT){
+		domain = deleteLastPoint(domain);
+		if(!validateDomainLenth(domain)){
 			return false;
 		}
 		String ldhReg = "^(?!-)(?!.*?-$)([0-9a-zA-Z][0-9a-zA-Z-]{0,62}\\.)+([0-9a-zA-Z][0-9a-zA-Z-]{0,62})?$";
@@ -104,7 +125,8 @@ public class ValidateUtils {
 		if(StringUtils.isBlank(domain)){
 			return false;
 		}
-		if(domain.length()>MAX_DOMAIN_LENGTH_WITHOUT_LAST_DOT){
+		domain = deleteLastPoint(domain);
+		if(!validateDomainLenth(domain)){
 			return false;
 		}
 		if(domain.contains("**")){
@@ -113,7 +135,6 @@ public class ValidateUtils {
 		if(isFuzzyLdh(domain)){
 			return true;
 		}
-		domain = ValidateUtils.deleteLastPoint(domain);
 		String domainWithoutAsterisk = domain.replaceAll("\\*", VALID_IDNA_CHAR);
 		return IdnaUtil.isValidIdn(domainWithoutAsterisk);
 	}
