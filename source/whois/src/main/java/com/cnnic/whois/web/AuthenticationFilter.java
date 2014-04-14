@@ -23,7 +23,6 @@ public class AuthenticationFilter implements Filter {
 
 	@Override
 	public void destroy() {
-		AuthenticationHolder.remove();
 	}
 
 	@Override
@@ -34,6 +33,7 @@ public class AuthenticationFilter implements Filter {
 		String role = WhoisUtil.getUserRole(request);
 		AuthenticationHolder.setAuthentication(new Authentication(role));
 		chain.doFilter(request, response);
+		AuthenticationHolder.remove();
 	}
 
 	@Override
