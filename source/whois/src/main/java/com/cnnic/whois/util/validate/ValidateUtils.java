@@ -83,6 +83,9 @@ public class ValidateUtils {
 		if(StringUtils.isBlank(domain)){
 			return false;
 		}
+		if(domain.indexOf("--") == 2){//'--' can't be third
+			return false;
+		}
 		domain = deleteLastPoint(domain);
 		String domainWithoutLastPoint = deleteLastPoint(domain);
 		if(!validateDomainLenth(domainWithoutLastPoint)){
@@ -102,6 +105,9 @@ public class ValidateUtils {
 	 */
 	public static boolean isLdh(String domain) {
 		if(StringUtils.isBlank(domain)){
+			return false;
+		}
+		if(domain.indexOf("--") == 2){//'--' can't be third
 			return false;
 		}
 		String domainWithoutLastPoin = deleteLastPoint(domain);
